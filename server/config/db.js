@@ -1,0 +1,55 @@
+const mongoose = require('mongoose');
+
+let isConnected = false;
+
+const connectDB = async () => {
+  if (isConnected) {
+    return;
+  }
+
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI);
+    isConnected = conn.connections[0].readyState === 1;
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+
+    // Auto-update SystemSettings to ensure manualWithdrawalApproval is true by default
+    const SystemSettings = require('../models/SystemSettings');
+    const settings = await SystemSettings.findOne();
+    if (settings) {
+      if (settings.manualWithdrawalApproval === undefined || settings.manualWithdrawalApproval === false) {
+        settings.manualWithdrawalApproval = true;
+        await settings.save();
+        console.log('SystemSettings updated: manualWithdrawalApproval set to true');
+      }
+    } else {
+      await SystemSettings.create({ manualWithdrawalApproval: true });
+      console.log('SystemSettings created with manualWithdrawalApproval: true');
+    }
+
+    // Auto-backfill compoundingBalance for UserPackage if undefined, and ensure isStaked/stakingDuration are populated
+    const UserPackage = require('../models/UserPackage');
+    const missingCompoundingPkgs = await UserPackage.find({
+      $or: [
+        { compoundingBalance: { $exists: false } },
+        { isStaked: { $exists: false } },
+        { stakingDuration: { $exists: false } }
+      ]
+    });
+    if (missingCompoundingPkgs.length > 0) {
+      console.log(`[DB] Found ${missingCompoundingPkgs.length} packages with missing compoundingBalance/isStaked/stakingDuration. Backfilling...`);
+      for (let p of missingCompoundingPkgs) {
+        if (p.compoundingBalance === undefined) p.compoundingBalance = p.amount;
+        if (p.isStaked === undefined) p.isStaked = false;
+        if (p.stakingDuration === undefined) p.stakingDuration = 0;
+        await p.save();
+      }
+      console.log('[DB] Compounding balance and staking fields backfill complete.');
+    }
+  } catch (error) {
+    console.error(`MongoDB connection error: ${error.message}`);
+    // Do NOT call process.exit(1) — on Vercel serverless it kills the handler
+    throw error;
+  }
+};
+
+module.exports = connectDB;
