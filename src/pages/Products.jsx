@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -110,6 +111,14 @@ export default function Products() {
     setTxHash('');
     setSenderAddress('');
     setPaymentMethod('metamask');
+    // Lock background scroll while modal is open
+    document.body.style.overflow = 'hidden';
+  };
+
+  const handleCloseModal = () => {
+    setSelectedPackage(null);
+    // Restore background scroll
+    document.body.style.overflow = '';
   };
 
   const handleAmountInputChangeInModal = (e) => {
@@ -602,18 +611,18 @@ export default function Products() {
           })}
       </div>
 
-      {/* ── Purchase Modal */}
+      {/* ── Purchase Modal — rendered in document.body via portal so it never causes page scroll */}
+      {createPortal(
       <AnimatePresence>
         {selectedPackage && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ paddingLeft: '16px', paddingRight: '16px' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '16px', paddingRight: '16px' }}>
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedPackage(null)}
-              className="absolute inset-0 backdrop-blur-sm"
-              style={{ backgroundColor: 'rgba(15, 23, 42, 0.4)' }}
+              onClick={handleCloseModal}
+              style={{ position: 'absolute', inset: 0, backdropFilter: 'blur(4px)', backgroundColor: 'rgba(15, 23, 42, 0.4)' }}
             ></motion.div>
 
             {/* Modal Card */}
@@ -621,12 +630,11 @@ export default function Products() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-2xl bg-white border border-slate-200/80 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.12),0_0_30px_rgba(243,16,253,0.05)] relative overflow-y-auto max-h-[92vh] z-10"
-              style={{ fontFamily: 'Inter, sans-serif', padding: 'clamp(16px, 5vw, 32px)' }}
+              style={{ fontFamily: 'Inter, sans-serif', padding: 'clamp(16px, 5vw, 32px)', width: '100%', maxWidth: '672px', background: '#fff', border: '1px solid rgba(226,232,240,0.8)', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.12), 0 0 30px rgba(243,16,253,0.05)', position: 'relative', overflowY: 'auto', maxHeight: '92dvh', zIndex: 10 }}
             >
               {/* Close Button */}
               <button
-                onClick={() => setSelectedPackage(null)}
+                onClick={handleCloseModal}
                 style={{
                   position: 'absolute',
                   top: '20px',
@@ -1110,6 +1118,7 @@ export default function Products() {
           </div>
         )}
       </AnimatePresence>
+      , document.body)}
     </div>
   );
 }
