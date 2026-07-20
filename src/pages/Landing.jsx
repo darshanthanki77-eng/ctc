@@ -1538,20 +1538,20 @@ function ComplianceSection() {
 }
 
 /* ═══════════════════════════════════════════
-   17. SECTION 16 — FINAL CALL TO ACTION (DARK SLATE NOIR)
+   17. SECTION 16 — FINAL CALL TO ACTION (LIGHT THEME)
 ═══════════════════════════════════════════ */
 function FinalCTA() {
   return (
-    <Section style={{ padding: '7rem 1.5rem', background: C.darkSlate, color: 'white', textAlign: 'center', position: 'relative' }}>
+    <Section style={{ padding: '7rem 1.5rem', background: C.bgLavender, color: C.text, textAlign: 'center', position: 'relative' }}>
       {/* Soft Drifting Background Glow */}
       <motion.div
-        animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          width: 500, height: 300, borderRadius: '50%',
-          background: `radial-gradient(circle, ${C.purple} 0%, ${C.pink} 60%, transparent 100%)`,
-          filter: 'blur(100px)', pointerEvents: 'none'
+          width: 550, height: 320, borderRadius: '50%',
+          background: `radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(243, 16, 253, 0.1) 60%, transparent 100%)`,
+          filter: 'blur(90px)', pointerEvents: 'none'
         }}
       />
 
@@ -1559,7 +1559,7 @@ function FinalCTA() {
         <Reveal y={24}>
           <span style={{
             fontSize: '0.725rem', fontWeight: 800, letterSpacing: '0.2em',
-            color: C.pink, textTransform: 'uppercase', display: 'block', marginBottom: '0.85rem'
+            color: C.purple, textTransform: 'uppercase', display: 'block', marginBottom: '0.85rem'
           }}>
             SECURED SMART DEFI SYSTEM
           </span>
@@ -1567,7 +1567,7 @@ function FinalCTA() {
           <h2 style={{
             fontSize: 'clamp(2.25rem, 5vw, 3.5rem)',
             fontWeight: 900,
-            color: '#FFFFFF',
+            color: C.text,
             lineHeight: 1.15,
             letterSpacing: '-0.02em',
             marginBottom: '1.25rem'
@@ -1577,7 +1577,7 @@ function FinalCTA() {
 
           <p style={{
             fontSize: '1rem',
-            color: 'rgba(255, 255, 255, 0.75)',
+            color: C.muted,
             maxWidth: 520,
             margin: '0 auto 2.5rem',
             lineHeight: 1.7,
@@ -1587,11 +1587,11 @@ function FinalCTA() {
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }} className="cta-btn-group">
-            <motion.div whileHover={{ scale: 1.04 }}>
+            <motion.div whileHover={{ scale: 1.04, y: -2 }}>
               <Link to="/register" className="btn-sheen" style={{
                 background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`,
                 color: '#FFFFFF', textDecoration: 'none', fontWeight: 800, fontSize: '0.875rem',
-                padding: '0.95rem 2.25rem', borderRadius: 12,
+                padding: '0.95rem 2.25rem', borderRadius: 14,
                 boxShadow: '0 8px 25px rgba(243, 16, 253, 0.3)', display: 'inline-block'
               }}>
                 Create Your Account
@@ -1599,13 +1599,14 @@ function FinalCTA() {
             </motion.div>
 
             <motion.a
-              whileHover={{ scale: 1.04, background: 'rgba(255, 255, 255, 0.12)' }}
+              whileHover={{ scale: 1.04, y: -2, background: C.purple, color: '#FFFFFF' }}
               href="#how-it-works"
               style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem',
-                padding: '0.95rem 2.25rem', borderRadius: 12, transition: 'all 0.2s ease'
+                background: '#FFFFFF',
+                border: `2px solid ${C.purple}`,
+                color: C.purple, textDecoration: 'none', fontWeight: 800, fontSize: '0.875rem',
+                padding: '0.95rem 2.25rem', borderRadius: 14,
+                boxShadow: '0 4px 15px rgba(124, 58, 237, 0.12)', transition: 'all 0.2s ease'
               }}
             >
               How It Works
