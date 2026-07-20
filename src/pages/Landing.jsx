@@ -370,7 +370,7 @@ function HeroMarketCard() {
 
         {/* Live Interactive Area Chart */}
         <div style={{ height: 110, width: '100%', marginBottom: '1.5rem' }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={50}>
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="heroChartGlow" x1="0" y1="0" x2="0" y2="1">
@@ -831,7 +831,7 @@ function CopyTradingSection() {
                     </div>
 
                     <div style={{ height: 95, width: '100%', marginBottom: '1.25rem' }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={50}>
                         <AreaChart data={current.chart}>
                           <defs>
                             <linearGradient id="strategyGlow" x1="0" y1="0" x2="0" y2="1">
