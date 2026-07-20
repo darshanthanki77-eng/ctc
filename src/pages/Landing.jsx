@@ -496,7 +496,7 @@ function HeroSection() {
 
             {/* CTAs */}
             <Reveal delay={0.36}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', alignItems: 'center' }} className="cta-btn-group">
                 <motion.a
                   whileHover={{ scale: 1.04, y: -2 }}
                   href="#packages"
@@ -851,7 +851,7 @@ function CopyTradingSection() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }} className="stats-3col">
                       <div style={{ background: '#FAF8FF', border: `1.5px solid ${C.borderSoft}`, borderRadius: 14, padding: '0.8rem 0.5rem', textAlign: 'center' }}>
                         <span style={{ fontSize: '0.6rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', display: 'block' }}>Master Profit</span>
                         <span style={{ fontSize: '0.875rem', fontWeight: 900, color: C.text, marginTop: 4, display: 'block' }}>
@@ -1031,7 +1031,7 @@ function ForexSection() {
               </p>
             </Reveal>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '2rem' }} className="forex-stats-grid">
               <Reveal delay={0.32}>
                 <div style={{ background: '#F8F9FD', border: 'none', borderRadius: 20, padding: '1.35rem', boxShadow: '0 8px 25px rgba(0, 0, 0, 0.04)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -1114,7 +1114,7 @@ function ForexSection() {
                       ACTIVE PAIR SPREADS ({currentSession.name.split(' ')[0]})
                     </span>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem' }} className="stats-3col">
                       {currentSession.pairs.map(p => (
                         <div key={p.pair} style={{ background: '#F8F9FD', border: `1.5px solid ${C.borderSoft}`, borderRadius: 14, padding: '0.75rem 0.5rem', textAlign: 'center' }}>
                           <span style={{ fontSize: '0.7rem', fontWeight: 800, color: C.text, display: 'block' }}>{p.pair}</span>
@@ -1356,7 +1356,7 @@ function PAMMSection() {
                     style={{ width: '100%', accentColor: C.purple, cursor: 'pointer', marginBottom: '1.25rem' }}
                   />
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }} className="forex-stats-grid">
                     <div style={{ background: '#FFFFFF', border: `1.5px solid ${C.borderSoft}`, borderRadius: 14, padding: '0.85rem', textAlign: 'center' }}>
                       <span style={{ fontSize: '0.6rem', fontWeight: 800, color: C.muted, textTransform: 'uppercase', display: 'block' }}>YOUR POOL SHARE</span>
                       <span style={{ fontSize: '1rem', fontWeight: 900, color: C.text, marginTop: 2, display: 'block' }}>
@@ -1656,7 +1656,7 @@ function FinalCTA() {
             Connect to verified copy trading strategies. Track yields. Reinvest. Take control of your financial pathway today.
           </p>
 
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }} className="cta-btn-group">
             <motion.div whileHover={{ scale: 1.04 }}>
               <Link to="/register" className="btn-sheen" style={{
                 background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`,
@@ -1720,7 +1720,7 @@ function Footer() {
 
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         {/* Main grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr', gap: '3rem', paddingBottom: '3.5rem', borderBottom: `1px solid ${C.borderSoft}` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr', gap: '3rem', paddingBottom: '3.5rem', borderBottom: `1px solid ${C.borderSoft}` }} className="footer-grid">
 
           {/* Brand column */}
           <div>
@@ -1859,18 +1859,33 @@ export default function Landing() {
         .nav-link-hover:hover::after { width: 100%; }
         .hero-grid { grid-template-columns: 1.1fr 0.9fr !important; }
         .about-grid { grid-template-columns: repeat(4, 1fr) !important; }
+        .footer-grid { grid-template-columns: 1.8fr 1fr 1fr !important; }
+        .forex-stats-grid { grid-template-columns: 1fr 1fr !important; }
+        .stats-3col { grid-template-columns: repeat(3, 1fr) !important; }
         .hidden-mobile { display: flex !important; }
         .show-mobile { display: none !important; }
+
         @media (max-width: 950px) {
           .about-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
         @media (max-width: 850px) {
-          .hero-grid { grid-template-columns: 1fr !important; gap: 2.5rem !important; }
+          .hero-grid { grid-template-columns: 1fr !important; gap: 2.25rem !important; }
+          .footer-grid { grid-template-columns: 1fr !important; gap: 2rem !important; }
           .hidden-mobile { display: none !important; }
           .show-mobile { display: flex !important; }
         }
+        @media (max-width: 768px) {
+          section { padding-top: 3.75rem !important; padding-bottom: 3.75rem !important; padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+        }
         @media (max-width: 550px) {
+          section { padding-top: 3rem !important; padding-bottom: 3rem !important; padding-left: 1rem !important; padding-right: 1rem !important; }
           .about-grid { grid-template-columns: 1fr !important; }
+          .forex-stats-grid { grid-template-columns: 1fr !important; }
+          .stats-3col { grid-template-columns: 1fr !important; gap: 0.5rem !important; }
+          .cta-btn-group { flex-direction: column !important; width: 100% !important; }
+          .cta-btn-group a, .cta-btn-group button, .cta-btn-group div { width: 100% !important; text-align: center !important; justify-content: center !important; }
+          h1 { font-size: 2.2rem !important; }
+          h2 { font-size: 1.85rem !important; }
         }
       `}</style>
 
