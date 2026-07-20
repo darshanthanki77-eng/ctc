@@ -116,8 +116,14 @@ function AnimatedCounter({ from = 0, to, duration = 0.9, prefix = "", suffix = "
 }
 
 /* ═══════════════════════════════════════════
-   00. PRELOADER — TERMINAL BOOTUP
-
+   00. PRELOADER — INSTANT BOOTUP
+═══════════════════════════════════════════ */
+function Preloader({ onComplete }) {
+  useEffect(() => {
+    onComplete();
+  }, [onComplete]);
+  return null;
+}
 
 /* ═══════════════════════════════════════════
    01. NAVBAR — GLASSMORPHISM FIXED
@@ -1752,6 +1758,7 @@ function Footer() {
    ROOT PAGE COMPONENT (CHOREOGRAPHED MOTION FLOW)
 ═══════════════════════════════════════════ */
 export default function Landing() {
+  const [loaded, setLoaded] = useState(false);
 
   return (
     <div style={{
