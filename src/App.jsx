@@ -16,6 +16,7 @@ import Register from './pages/Register';
 import PackageHistory from './pages/PackageHistory';
 import PromotionalBonusHistory from './pages/PromotionalBonusHistory';
 import Notifications from './pages/Notifications';
+import Landing from './pages/Landing';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setWalletAddress } from './redux/slices/authSlice';
@@ -23,7 +24,7 @@ import { setWalletAddress } from './redux/slices/authSlice';
 const ProtectedRoute = ({ children }) => {
   const { user } = useSelector((state) => state.auth);
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
   return children;
 };
@@ -40,7 +41,7 @@ function App() {
           dispatch(setWalletAddress(null));
         }
       });
-      
+
       // Check initial connection
       window.ethereum.request({ method: 'eth_accounts' }).then((accounts) => {
         if (accounts && accounts.length > 0) {
@@ -60,10 +61,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/landing" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route index element={<Navigate to="/app/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="products" element={<Products />} />
           <Route path="kyc" element={<Kyc />} />
@@ -77,9 +80,10 @@ function App() {
           <Route path="package-history" element={<PackageHistory />} />
           <Route path="promotional-bonus" element={<PromotionalBonusHistory />} />
           <Route path="notifications" element={<Notifications />} />
-          {/* Add placeholders for other routes */}
           <Route path="*" element={<div className="p-8 text-text-secondary text-center">Coming Soon</div>} />
         </Route>
+        {/* Fallback routes for direct dashboard access */}
+        <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );
