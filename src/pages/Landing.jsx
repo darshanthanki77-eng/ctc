@@ -1686,8 +1686,6 @@ function FinalCTA() {
     </Section>
   );
 }
-  );
-}
 
 /* ═══════════════════════════════════════════
    18. SECTION 17 — FOOTER (LIGHT)
