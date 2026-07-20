@@ -1,25 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
-    {
-      "src": "server/server.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "server/**"
-        ]
-      }
-    }
-  ],
   "routes": [
     {
       "src": "/api/(.*)",
@@ -34,13 +16,13 @@
     },
     {
       "src": "/admin/(.*)",
-      "dest": "admin/index.html"
+      "dest": "dist/admin/index.html"
     },
     {
       "src": "/.*",
-      "dest": "index.html",
+      "dest": "/index.html",
       "headers": {
-        "cache-control": "s-maxage=0, max-age=0, must-revalidate, no-cache"
+        "cache-control": "s-maxage=0, max-age=0, must-revalidate"
       }
     }
   ],
