@@ -1,7 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api';
 
-const user = JSON.parse(localStorage.getItem('user'));
+let user = null;
+try {
+  const savedUser = localStorage.getItem('user');
+  user = savedUser && savedUser !== 'undefined' ? JSON.parse(savedUser) : null;
+} catch (e) {
+  user = null;
+}
 const savedWallet = localStorage.getItem('walletAddress');
 
 const initialState = {

@@ -1,6 +1,6 @@
 // CTC App - Production Route Setup
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
@@ -22,12 +22,12 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setWalletAddress } from './redux/slices/authSlice';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedLayout = () => {
   const { user } = useSelector((state) => state.auth);
   if (!user) {
     return <Navigate to="/landing" replace />;
   }
-  return children;
+  return <Layout />;
 };
 
 function App() {
@@ -62,29 +62,56 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/landing" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<Navigate to="/app/dashboard" replace />} />
+
+        {/* Protected Dashboard Layout Routes */}
+        <Route element={<ProtectedLayout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="products" element={<Products />} />
+          <Route path="packages" element={<Products />} />
           <Route path="kyc" element={<Kyc />} />
           <Route path="withdrawal" element={<Withdrawal />} />
           <Route path="downline" element={<Downline />} />
+          <Route path="network" element={<Downline />} />
           <Route path="referral-income" element={<ReferralIncome />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="profile" element={<Profile />} />
           <Route path="level-income" element={<LevelIncome />} />
           <Route path="mining" element={<MiningHistory />} />
+          <Route path="copy-trade" element={<MiningHistory />} />
           <Route path="package-history" element={<PackageHistory />} />
           <Route path="promotional-bonus" element={<PromotionalBonusHistory />} />
           <Route path="notifications" element={<Notifications />} />
-          <Route path="*" element={<div className="p-8 text-text-secondary text-center">Coming Soon</div>} />
         </Route>
-        {/* Fallback routes for direct dashboard access */}
-        <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+
+        {/* Support Legacy /app routes */}
+        <Route path="/app" element={<ProtectedLayout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="packages" element={<Products />} />
+          <Route path="kyc" element={<Kyc />} />
+          <Route path="withdrawal" element={<Withdrawal />} />
+          <Route path="downline" element={<Downline />} />
+          <Route path="network" element={<Downline />} />
+          <Route path="referral-income" element={<ReferralIncome />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="level-income" element={<LevelIncome />} />
+          <Route path="mining" element={<MiningHistory />} />
+          <Route path="copy-trade" element={<MiningHistory />} />
+          <Route path="package-history" element={<PackageHistory />} />
+          <Route path="promotional-bonus" element={<PromotionalBonusHistory />} />
+          <Route path="notifications" element={<Notifications />} />
+        </Route>
+
+        {/* Fallback Catch-All */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );
