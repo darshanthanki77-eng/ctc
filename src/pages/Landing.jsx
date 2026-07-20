@@ -1612,142 +1612,80 @@ function ComplianceSection() {
 ═══════════════════════════════════════════ */
 function FinalCTA() {
   return (
-    <Section style={{ padding: '7.5rem 1.5rem', background: '#0B0F19', color: 'white', textAlign: 'center', position: 'relative' }}>
-      {/* Background Radial Overlay */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.15) 0%, rgba(11, 15, 25, 0.95) 70%)',
-        pointerEvents: 'none'
-      }} />
-
-      {/* Ambient Drifting Glow Blobs */}
+    <Section style={{ padding: '7rem 1.5rem', background: C.darkSlate, color: 'white', textAlign: 'center', position: 'relative' }}>
+      {/* Soft Drifting Background Glow */}
       <motion.div
-        animate={{ scale: [1, 1.25, 1], x: [-40, 40, -40], y: [-30, 30, -30] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         style={{
-          position: 'absolute', top: '15%', left: '15%', width: 350, height: 350, borderRadius: '50%',
-          background: 'rgba(124, 58, 237, 0.28)', filter: 'blur(90px)', pointerEvents: 'none'
-        }}
-      />
-      <motion.div
-        animate={{ scale: [1, 1.3, 1], x: [40, -40, 40], y: [30, -30, 30] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          position: 'absolute', bottom: '15%', right: '15%', width: 380, height: 380, borderRadius: '50%',
-          background: 'rgba(243, 16, 253, 0.22)', filter: 'blur(100px)', pointerEvents: 'none'
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          width: 500, height: 300, borderRadius: '50%',
+          background: `radial-gradient(circle, ${C.purple} 0%, ${C.pink} 60%, transparent 100%)`,
+          filter: 'blur(100px)', pointerEvents: 'none'
         }}
       />
 
-      <div style={{ maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 10 }}>
-        <Reveal y={32}>
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: 32,
-            padding: '4rem 2.5rem',
-            backdropFilter: 'blur(20px)',
-            boxShadow: '0 30px 70px rgba(0, 0, 0, 0.45)',
-            position: 'relative',
-            overflow: 'hidden'
+      <div style={{ maxWidth: 750, margin: '0 auto', position: 'relative', zIndex: 10 }}>
+        <Reveal y={24}>
+          <span style={{
+            fontSize: '0.725rem', fontWeight: 800, letterSpacing: '0.2em',
+            color: C.pink, textTransform: 'uppercase', display: 'block', marginBottom: '0.85rem'
           }}>
-            {/* Glass Card Header Pill */}
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.55rem',
-              background: 'rgba(243, 16, 253, 0.12)', border: `1px solid rgba(243, 16, 253, 0.3)`,
-              borderRadius: 100, padding: '0.45rem 1.25rem', marginBottom: '1.5rem',
-              boxShadow: '0 4px 20px rgba(243, 16, 253, 0.15)'
-            }}>
-              <Sparkles size={14} color={C.pink} />
-              <span style={{ fontSize: '0.725rem', fontWeight: 800, letterSpacing: '0.18em', color: C.pink, textTransform: 'uppercase' }}>
-                SECURED SMART DEFI SYSTEM
-              </span>
-            </div>
+            SECURED SMART DEFI SYSTEM
+          </span>
 
-            {/* High Contrast WOW Headline */}
-            <h2 style={{
-              fontSize: 'clamp(2.5rem, 5.5vw, 4.25rem)',
-              fontWeight: 900,
-              marginTop: '0.5rem',
-              marginBottom: '1.25rem',
-              letterSpacing: '-0.03em',
-              color: '#FFFFFF',
-              lineHeight: 1.12
-            }}>
-              The next move{' '}
-              <span style={{
-                background: `linear-gradient(135deg, #FFFFFF 10%, #D8B4FE 50%, ${C.pink} 100%)`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                display: 'inline-block'
+          <h2 style={{
+            fontSize: 'clamp(2.25rem, 5vw, 3.5rem)',
+            fontWeight: 900,
+            color: '#FFFFFF',
+            lineHeight: 1.15,
+            letterSpacing: '-0.02em',
+            marginBottom: '1.25rem'
+          }}>
+            The next move is yours.
+          </h2>
+
+          <p style={{
+            fontSize: '1rem',
+            color: 'rgba(255, 255, 255, 0.75)',
+            maxWidth: 520,
+            margin: '0 auto 2.5rem',
+            lineHeight: 1.7,
+            fontWeight: 500
+          }}>
+            Connect to verified copy trading strategies. Track yields. Reinvest. Take control of your financial pathway today.
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <motion.div whileHover={{ scale: 1.04 }}>
+              <Link to="/register" className="btn-sheen" style={{
+                background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`,
+                color: '#FFFFFF', textDecoration: 'none', fontWeight: 800, fontSize: '0.875rem',
+                padding: '0.95rem 2.25rem', borderRadius: 12,
+                boxShadow: '0 8px 25px rgba(243, 16, 253, 0.3)', display: 'inline-block'
               }}>
-                is yours.
-              </span>
-            </h2>
+                Create Your Account
+              </Link>
+            </motion.div>
 
-            {/* High Readability Description */}
-            <p style={{
-              fontSize: '1.05rem',
-              color: '#CBD5E1',
-              maxWidth: 580,
-              margin: '0 auto 2.75rem',
-              lineHeight: 1.7,
-              fontWeight: 500
-            }}>
-              Connect to verified copy trading strategies. Track yields. Reinvest. Take control of your financial pathway today.
-            </p>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem' }}>
-              <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.98 }}>
-                <Link to="/register" className="btn-sheen" style={{
-                  background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`,
-                  color: '#FFFFFF', textDecoration: 'none', fontWeight: 800, fontSize: '0.95rem',
-                  padding: '1rem 2.5rem', borderRadius: 14,
-                  boxShadow: '0 10px 35px rgba(243,16,253,0.45)',
-                  display: 'inline-flex', alignItems: 'center', gap: '0.6rem'
-                }}>
-                  Create Your Account <ArrowRight size={18} />
-                </Link>
-              </motion.div>
-
-              <motion.a
-                whileHover={{ scale: 1.05, y: -2, background: 'rgba(255, 255, 255, 0.12)', borderColor: C.purple }}
-                whileTap={{ scale: 0.98 }}
-                href="#how-it-works"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.22)',
-                  color: '#FFFFFF', textDecoration: 'none', fontWeight: 800, fontSize: '0.95rem',
-                  padding: '1rem 2.5rem', borderRadius: 14,
-                  backdropFilter: 'blur(10px)', transition: 'all 0.25s ease',
-                  display: 'inline-flex', alignItems: 'center', gap: '0.5rem'
-                }}
-              >
-                How It Works
-              </motion.a>
-            </div>
-
-            {/* Trust Features Bar */}
-            <div style={{
-              display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap',
-              gap: '2.5rem', marginTop: '3.5rem', paddingTop: '2rem',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)'
-            }}>
-              {[
-                { icon: ShieldCheck, text: 'Instant Setup' },
-                { icon: Lock, text: 'Non-Custodial Safety' },
-                { icon: Zap, text: '24/7 Automated Execution' }
-              ].map((b, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94A3B8', fontSize: '0.825rem', fontWeight: 600 }}>
-                  <b.icon size={16} color={C.pink} />
-                  <span>{b.text}</span>
-                </div>
-              ))}
-            </div>
+            <motion.a
+              whileHover={{ scale: 1.04, background: 'rgba(255, 255, 255, 0.12)' }}
+              href="#how-it-works"
+              style={{
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem',
+                padding: '0.95rem 2.25rem', borderRadius: 12, transition: 'all 0.2s ease'
+              }}
+            >
+              How It Works
+            </motion.a>
           </div>
         </Reveal>
       </div>
     </Section>
+  );
+}
   );
 }
 
