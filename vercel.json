@@ -38,7 +38,10 @@
     },
     {
       "src": "/.*",
-      "dest": "index.html"
+      "dest": "index.html",
+      "headers": {
+        "cache-control": "s-maxage=0, max-age=0, must-revalidate, no-cache"
+      }
     }
   ],
   "env": {
