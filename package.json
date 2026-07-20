@@ -4,7 +4,7 @@
   "version": "1.0.1",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && cd admin && npm install && npm run build && node -e \"const fs=require('fs'); fs.mkdirSync('../dist/admin',{recursive:true}); fs.cpSync('dist','../dist/admin',{recursive:true});\"",
+    "build": "vite build && cd admin && npm run build && node -e \"const fs=require('fs'); fs.mkdirSync('../dist/admin',{recursive:true}); fs.cpSync('dist','../dist/admin',{recursive:true});\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },
