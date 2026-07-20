@@ -117,77 +117,7 @@ function AnimatedCounter({ from = 0, to, duration = 0.9, prefix = "", suffix = "
 
 /* ═══════════════════════════════════════════
    00. PRELOADER — TERMINAL BOOTUP
-═══════════════════════════════════════════ */
-function Preloader({ onComplete }) {
-  const [exit, setExit] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setExit(true);
-      setTimeout(() => onComplete(), 450);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, [onComplete]);
-
-  return (
-    <AnimatePresence>
-      {!exit && (
-        <motion.div
-          key="preloader"
-          exit={{ y: '-100%' }}
-          transition={{ duration: 0.45, ease: EXPO_OUT }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
-            background: C.darkSlate, color: 'white',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-          }}
-        >
-          {/* Animated Squiggle Price Line */}
-          <div style={{ width: 140, height: 60, marginBottom: '1.25rem', position: 'relative' }}>
-            <svg width="140" height="60" viewBox="0 0 140 60" fill="none">
-              <defs>
-                <linearGradient id="loaderGrad" x1="0" y1="0" x2="140" y2="0" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor={C.purple} />
-                  <stop offset="100%" stopColor={C.pink} />
-                </linearGradient>
-              </defs>
-              <motion.path
-                d="M 10,45 Q 35,5 60,35 T 110,15 T 130,25"
-                stroke="url(#loaderGrad)"
-                strokeWidth="4"
-                strokeLinecap="round"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.9, ease: EXPO_OUT }}
-              />
-            </svg>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4, duration: 0.3 }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}
-          >
-            <div style={{
-              width: 34, height: 34, borderRadius: 10,
-              background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 6px 20px rgba(243, 16, 253, 0.4)'
-            }}>
-              <TrendingUp size={20} color="white" />
-            </div>
-            <span style={{ fontWeight: 900, fontSize: '1.5rem', letterSpacing: '0.1em' }}>CTC</span>
-          </motion.div>
-
-          <span style={{ fontSize: '0.65rem', fontWeight: 800, color: C.mutedLight, letterSpacing: '0.25em', marginTop: 8 }}>
-            INITIALIZING CORE TERMINAL...
-          </span>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
 
 /* ═══════════════════════════════════════════
    01. NAVBAR — GLASSMORPHISM FIXED
@@ -1821,7 +1751,6 @@ function Footer() {
    ROOT PAGE COMPONENT (CHOREOGRAPHED MOTION FLOW)
 ═══════════════════════════════════════════ */
 export default function Landing() {
-  const [loaded, setLoaded] = useState(false);
 
   return (
     <div style={{
