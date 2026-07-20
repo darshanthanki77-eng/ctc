@@ -140,7 +140,9 @@ export default function Register() {
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 640, margin: '0 auto' }}>
           {/* Logo Image */}
           <div style={{ marginBottom: 28 }}>
-            <img src={logo} alt="CTC Logo" style={{ height: 68, width: 'auto', maxWidth: '240px', objectFit: 'contain' }} />
+            <Link to="/">
+              <img src={logo} alt="CTC Logo" style={{ height: 68, width: 'auto', maxWidth: '240px', objectFit: 'contain', cursor: 'pointer' }} />
+            </Link>
           </div>
 
           {/* Headline */}
