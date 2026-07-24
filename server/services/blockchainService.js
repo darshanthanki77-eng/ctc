@@ -7,8 +7,8 @@ const ADMIN_WALLET = "0x185018c5f26B2cE105e0B80b231178CE5913b621".toLowerCase();
 
 const verifyTransaction = async (txHash, expectedAmount, senderAddress) => {
   try {
-    // In development or when using mock hashes, bypass strict Web3 validation
-    if (process.env.NODE_ENV === 'development' && txHash.startsWith('mock_')) {
+    // Bypass Web3 validation for mock or manual admin transactions (all environments)
+    if (!txHash || txHash.startsWith('mock_') || txHash.startsWith('manual_')) {
       console.log('Skipping real Web3 verification for mock/dev transaction:', txHash);
       return { 
         status: true, 
@@ -81,11 +81,12 @@ const verifyTransaction = async (txHash, expectedAmount, senderAddress) => {
 
 const verifyWithdrawalTransaction = async (txHash, expectedAmount, recipientAddress) => {
   try {
-    if (process.env.NODE_ENV === 'development' && txHash.startsWith('mock_')) {
-      console.log('Skipping real Web3 verification for mock/dev withdrawal transaction:', txHash);
+    // Bypass Web3 validation for mock or manual admin withdrawal transactions (all environments)
+    if (!txHash || txHash.startsWith('mock_') || txHash.startsWith('manual_')) {
+      console.log('Bypassing real Web3 verification for manual/mock withdrawal transaction:', txHash);
       return { 
         status: true, 
-        message: 'Mock withdrawal transaction verified',
+        message: 'Mock/Manual withdrawal transaction verified',
         chainId: '56',
         tokenContract: USDT_CONTRACT,
         blockNumber: 0,

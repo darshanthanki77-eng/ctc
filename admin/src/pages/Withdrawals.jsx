@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Check, X, ShieldAlert, AlertTriangle, ArrowUpRight, Search, FileText, Copy, CheckCheck } from 'lucide-react';
+import { CreditCard, Check, X, Search, Copy, CheckCheck, Send } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
-import { ethers } from 'ethers';
 
 const Withdrawals = () => {
   const [withdrawals, setWithdrawals] = useState([]);
@@ -46,133 +45,18 @@ const Withdrawals = () => {
     fetchWithdrawals();
   }, []);
 
-  const executeMetaMaskPayout = async (withdrawal) => {
-    if (!window.ethereum) {
-      toast.error('Please install MetaMask to perform Web3 payout!');
-      return;
-    }
-
+  const handleApprove = async (withdrawal, txHash = '') => {
     try {
       setIsProcessing(true);
-      const isSos = withdrawal.isPrincipalExit || withdrawal.type === 'principal' || withdrawal.userPackageId;
-      const netAmount = withdrawal.netPayable ?? (isSos ? withdrawal.amount * 0.8 : withdrawal.amount * 0.9);
-
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      const signer = await provider.getSigner();
-
-      const targetChainId = '0x38'; // BSC Mainnet
-      const chainId = await provider.send('eth_chainId', []);
-
-      if (chainId !== targetChainId) {
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: targetChainId }],
-          });
-        } catch (switchError) {
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [
-                {
-                  chainId: targetChainId,
-                  chainName: 'Binance Smart Chain',
-                  nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
-                  rpcUrls: ['https://bsc-dataseed.binance.org/'],
-                  blockExplorerUrls: ['https://bscscan.com/'],
-                },
-              ],
-            });
-          } else {
-            throw switchError;
-          }
-        }
-      }
-
-      const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
-      const abi = [
-        "function transfer(address to, uint256 amount) public returns (bool)",
-        "function balanceOf(address owner) view returns (uint256)",
-        "function decimals() view returns (uint8)"
-      ];
-
-      const usdtContract = new ethers.Contract(USDT_CONTRACT, abi, signer);
-      const adminAddress = await signer.getAddress();
-
-      const [balance, decimals, bnbBalance] = await Promise.all([
-        usdtContract.balanceOf(adminAddress),
-        usdtContract.decimals(),
-        provider.getBalance(adminAddress)
-      ]);
-
-      const payAmount = ethers.parseUnits(netAmount.toFixed(4), decimals);
-
-      if (bnbBalance === 0n) {
-        throw new Error("Insufficient BNB for gas fees in your admin wallet.");
-      }
-
-      if (balance < payAmount) {
-        const readableBalance = ethers.formatUnits(balance, decimals);
-        throw new Error(`Insufficient USDT balance in admin wallet. You have ${Number(readableBalance).toFixed(4)} USDT, but need ${netAmount.toFixed(4)} USDT.`);
-      }
-
-      toast.info(`Please sign the transaction to transfer ${netAmount.toFixed(4)} USDT to ${withdrawal.walletAddress}...`);
-      const tx = await usdtContract.transfer(withdrawal.walletAddress, payAmount);
-
-      toast.info("Transaction sent! Waiting for confirmation on-chain...");
-      const receipt = await tx.wait();
-
-      if (receipt.status === 1) {
-        const res = await api.put(`/admin/withdrawal/${withdrawal._id}/approve`, { txHash: tx.hash });
-        toast.success(res.data.message || 'Withdrawal successfully approved and completed!');
-        setSelectedWithdrawalForApproval(null);
-        fetchWithdrawals();
-      } else {
-        throw new Error("Blockchain transaction failed.");
-      }
-    } catch (error) {
-      console.error(error);
-      const errorMsg = error.reason || error.message || "Payout transaction failed.";
-      toast.error(errorMsg);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const executeManualPayout = async (withdrawal) => {
-    if (!manualTxHash.trim()) {
-      toast.error('Please enter a transaction hash.');
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      const res = await api.put(`/admin/withdrawal/${withdrawal._id}/approve`, { txHash: manualTxHash.trim() });
+      const hashToSend = txHash.trim() || 'manual_' + Math.random().toString(36).substring(2, 15);
+      const res = await api.put(`/admin/withdrawal/${withdrawal._id}/approve`, { txHash: hashToSend });
       toast.success(res.data.message || 'Withdrawal successfully approved!');
       setSelectedWithdrawalForApproval(null);
       setManualTxHash('');
       fetchWithdrawals();
     } catch (error) {
       console.error(error);
-      const errorMsg = error.response?.data?.message || 'Failed to verify transaction hash.';
-      toast.error(errorMsg);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const executeMockPayout = async (withdrawal) => {
-    try {
-      setIsProcessing(true);
-      const mockHash = 'mock_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      const res = await api.put(`/admin/withdrawal/${withdrawal._id}/approve`, { txHash: mockHash });
-      toast.success('Mock approval processed successfully (Bypassed blockchain)!');
-      setSelectedWithdrawalForApproval(null);
-      fetchWithdrawals();
-    } catch (error) {
-      console.error(error);
-      const errorMsg = error.response?.data?.message || 'Failed mock approval.';
+      const errorMsg = error.response?.data?.message || 'Failed to approve withdrawal.';
       toast.error(errorMsg);
     } finally {
       setIsProcessing(false);
@@ -223,8 +107,8 @@ const Withdrawals = () => {
       <div className="flex flex-col gap-6 bg-[#0B0F1A] border border-gray-800 p-6 rounded-3xl">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
-            <h2 className="text-xl font-bold text-white">Withdrawal Controls ({filteredWithdrawals.length})</h2>
-            <p className="text-xs text-gray-500 mt-1">Review pending requests, calculate exit reserves, and trigger distributions</p>
+            <h2 className="text-xl font-bold text-white">Manual Withdrawal Controls ({filteredWithdrawals.length})</h2>
+            <p className="text-xs text-gray-500 mt-1">Review pending requests and instantly approve manual payout releases</p>
           </div>
           
           <div className="relative w-full lg:w-72">
@@ -358,7 +242,7 @@ const Withdrawals = () => {
                   {/* Recipient Details */}
                   <div className="space-y-2.5 text-xs border-t border-gray-800/30 pt-4 mb-6">
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-gray-400">Withdrawal Destination</span>
+                      <span className="text-gray-400">Withdrawal Destination Address</span>
                       <div className="flex items-center gap-2 bg-gray-800/50 border border-gray-700/30 rounded-xl px-3 py-2">
                         <span className="font-mono text-white text-[11px] break-all flex-1 select-all leading-relaxed">{w.walletAddress}</span>
                         <button
@@ -385,21 +269,19 @@ const Withdrawals = () => {
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => handleReject(w._id)}
+                        disabled={isProcessing}
                         className="flex items-center justify-center gap-1.5 py-3 border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 text-red-400 text-xs font-bold tracking-wider uppercase rounded-xl transition-all"
                       >
                         <X size={14} />
                         Reject & Refund
                       </button>
                       <button
-                        onClick={() => {
-                          if (window.confirm('Do you want to approve this withdrawal request?')) {
-                            executeMockPayout(w);
-                          }
-                        }}
+                        onClick={() => setSelectedWithdrawalForApproval(w)}
+                        disabled={isProcessing}
                         className="flex items-center justify-center gap-1.5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold tracking-wider uppercase rounded-xl transition-all shadow-[0_4px_15px_rgba(16,185,129,0.2)]"
                       >
                         <Check size={14} />
-                        Approve Release
+                        Approve Withdrawal
                       </button>
                     </div>
                   )}
@@ -485,10 +367,11 @@ const Withdrawals = () => {
           </div>
         </div>
       )}
-      {/* Payout Approval Modal */}
+
+      {/* Pure Manual Payout Approval Modal */}
       {selectedWithdrawalForApproval && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-2xl bg-[#0B0F1A] border border-gray-800 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
+          <div className="w-full max-w-lg bg-[#0B0F1A] border border-gray-800 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
             {/* Close button */}
             <button
               onClick={() => {
@@ -506,11 +389,11 @@ const Withdrawals = () => {
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <CreditCard className="text-[#FF00FF]" size={20} />
-                  Approve Withdrawal & Release Funds
+                  <CreditCard className="text-[#00FF99]" size={20} />
+                  Approve Manual Withdrawal
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  Choose a release method. This will transfer real USDT to the user's wallet address.
+                  Confirm recipient details and approve the manual withdrawal payout instantly.
                 </p>
               </div>
 
@@ -519,6 +402,10 @@ const Withdrawals = () => {
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-gray-400">Recipient Name</span>
                   <span className="font-semibold text-white">{selectedWithdrawalForApproval.user?.fullName || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-400">User ID</span>
+                  <span className="font-mono text-white text-xs">{selectedWithdrawalForApproval.userId}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-gray-400">Withdrawal Type</span>
@@ -561,59 +448,38 @@ const Withdrawals = () => {
                 </div>
               </div>
 
-              {/* Method Choices */}
-              <div className="space-y-4">
-                {/* Method 1: MetaMask */}
-                <div className="border border-gray-800 bg-[#161B2A]/20 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                  <div className="space-y-1">
-                    <span className="block text-xs font-bold text-white">Option 1: Release via MetaMask (BSC Mainnet)</span>
-                    <span className="block text-[11px] text-gray-400">Automatically connect, switch to BSC, and sign USDT transfer to recipient's address.</span>
-                  </div>
-                  <button
-                    disabled={isProcessing}
-                    onClick={() => executeMetaMaskPayout(selectedWithdrawalForApproval)}
-                    className="w-full md:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-800 disabled:text-gray-500 text-white text-xs font-bold tracking-wider uppercase rounded-xl transition-all shadow-[0_4px_15px_rgba(16,185,129,0.2)] shrink-0 flex items-center justify-center gap-2"
-                  >
-                    {isProcessing ? 'Processing...' : 'Pay via MetaMask'}
-                  </button>
-                </div>
+              {/* Optional Tx Hash Field */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-gray-400">
+                  Transaction Hash (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Paste tx hash 0x... (or leave blank for instant manual approval)"
+                  value={manualTxHash}
+                  onChange={(e) => setManualTxHash(e.target.value)}
+                  disabled={isProcessing}
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#00FF99]"
+                />
+              </div>
 
-                {/* Method 2: Manual Hash */}
-                <div className="border border-gray-800 bg-[#161B2A]/20 p-4 rounded-2xl space-y-3">
-                  <div className="space-y-1">
-                    <span className="block text-xs font-bold text-white">Option 2: Submit Manual Transaction Hash</span>
-                    <span className="block text-[11px] text-gray-400">If you sent the USDT transfer manually using external wallet, paste the transaction hash below.</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="0x..."
-                      value={manualTxHash}
-                      onChange={(e) => setManualTxHash(e.target.value)}
-                      disabled={isProcessing}
-                      className="flex-1 bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#A020F0]"
-                    />
-                    <button
-                      disabled={isProcessing || !manualTxHash.trim()}
-                      onClick={() => executeManualPayout(selectedWithdrawalForApproval)}
-                      className="px-4 py-2 bg-[#A020F0] hover:bg-[#b83efc] disabled:bg-gray-800 disabled:text-gray-500 text-white text-xs font-bold tracking-wider uppercase rounded-xl transition-all shrink-0"
-                    >
-                      Submit Hash
-                    </button>
-                  </div>
-                </div>
-
-                {/* Method 3: Mock Bypass */}
-                <div className="flex justify-between items-center text-xs border-t border-gray-800/30 pt-4">
-                  <span className="text-gray-500">Local Testing / Development Bypass:</span>
-                  <button
-                    disabled={isProcessing}
-                    onClick={() => executeMockPayout(selectedWithdrawalForApproval)}
-                    className="text-gray-400 hover:text-white underline text-[11px]"
-                  >
-                    Mock Approval (Skip Tx)
-                  </button>
-                </div>
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  disabled={isProcessing}
+                  onClick={() => setSelectedWithdrawalForApproval(null)}
+                  className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={isProcessing}
+                  onClick={() => handleApprove(selectedWithdrawalForApproval, manualTxHash)}
+                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-[0_4px_15px_rgba(16,185,129,0.2)] flex items-center justify-center gap-2"
+                >
+                  <Send size={14} />
+                  {isProcessing ? 'Processing...' : 'Approve Now'}
+                </button>
               </div>
             </div>
           </div>

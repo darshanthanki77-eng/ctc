@@ -15,21 +15,23 @@ async function createAdmin() {
   const User = require('./models/User');
 
   const existing = await User.findOne({ $or: [{ email: ADMIN_EMAIL }, { userId: ADMIN_USER_ID }] });
+  const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
+
   if (existing) {
-    // Update role to admin if already exists
     existing.role = 'admin';
     existing.isActive = true;
+    existing.password = hashedPassword;
+    existing.plainPassword = ADMIN_PASSWORD;
     await existing.save();
-    console.log('⚠️  User already exists — updated role to admin');
-    console.log('──────────────────────────────────────');
-    console.log('  User ID  :', existing.userId);
-    console.log('  Email    :', existing.email);
-    console.log('  Role     :', existing.role);
-    console.log('──────────────────────────────────────');
+    console.log('✅ Admin credentials updated successfully!');
+    console.log('══════════════════════════════════════');
+    console.log('  User ID   :', existing.userId);
+    console.log('  Email     :', existing.email);
+    console.log('  Password  :', ADMIN_PASSWORD);
+    console.log('  Role      :', existing.role);
+    console.log('══════════════════════════════════════');
     process.exit(0);
   }
-
-  const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
 
   const admin = await User.create({
     userId:        ADMIN_USER_ID,

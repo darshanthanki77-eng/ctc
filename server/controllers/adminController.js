@@ -171,18 +171,19 @@ const approveWithdrawal = async (req, res, next) => {
     const withdrawal = await Withdrawal.findById(req.params.id).populate('user');
     if (!withdrawal) return res.status(404).json({ message: 'Withdrawal not found' });
 
-    if (!txHash) {
-      return res.status(400).json({ message: 'Transaction hash is required to approve and release the withdrawal.' });
+    // Auto-generate transaction hash if not provided (for instant manual admin approval)
+    const effectiveTxHash = txHash?.trim() || `manual_${withdrawal._id}_${Date.now()}`;
+
+    // Check for duplicate transaction (only for real on-chain hashes)
+    if (txHash && !txHash.startsWith('mock_') && !txHash.startsWith('manual_')) {
+      const existingTx = await Transaction.findOne({ txHash: effectiveTxHash });
+      if (existingTx) {
+        return res.status(400).json({ message: 'This transaction hash has already been used. Duplicate transactions are not allowed.' });
+      }
     }
 
-    // Check for duplicate transaction
-    const existingTx = await Transaction.findOne({ txHash });
-    if (existingTx) {
-      return res.status(400).json({ message: 'This transaction hash has already been used. Duplicate transactions are not allowed.' });
-    }
-
-    // Verify withdrawal payout transaction on blockchain
-    const verification = await verifyWithdrawalTransaction(txHash, withdrawal.finalAmount, withdrawal.walletAddress);
+    // Verify withdrawal payout transaction on blockchain (bypasses for mock/manual)
+    const verification = await verifyWithdrawalTransaction(effectiveTxHash, withdrawal.finalAmount, withdrawal.walletAddress);
     if (!verification.status) {
       return res.status(400).json({ message: verification.message });
     }
@@ -190,7 +191,7 @@ const approveWithdrawal = async (req, res, next) => {
     withdrawal.status = 'approved';
     withdrawal.approvedBy = req.user._id;
     withdrawal.approvedAt = Date.now();
-    withdrawal.txHash = txHash;
+    withdrawal.txHash = effectiveTxHash;
     await withdrawal.save();
 
     await Transaction.create({
@@ -200,16 +201,16 @@ const approveWithdrawal = async (req, res, next) => {
       amount: withdrawal.amount,
       status: 'success',
       walletAddress: withdrawal.walletAddress,
-      txHash,
-      chainId: verification.chainId,
+      txHash: effectiveTxHash,
+      chainId: verification.chainId || '56',
       tokenContract: verification.tokenContract,
-      blockNumber: verification.blockNumber,
-      confirmationCount: verification.confirmationCount
+      blockNumber: verification.blockNumber || 0,
+      confirmationCount: verification.confirmationCount || 1
     });
 
     const io = req.app.get('io');
     if (io && withdrawal.user) {
-      io.to(withdrawal.user._id.toString()).emit('notification', `Your withdrawal of ${withdrawal.amount} has been approved.`);
+      io.to(withdrawal.user._id.toString()).emit('notification', `Your withdrawal of $${withdrawal.amount} has been approved.`);
     }
 
     // Send withdrawal approval email
@@ -219,11 +220,11 @@ const approveWithdrawal = async (req, res, next) => {
         withdrawal.user.email,
         withdrawal.user.fullName || 'User',
         withdrawal.amount,
-        txHash
+        effectiveTxHash
       );
     }
 
-    res.json({ message: 'Withdrawal Approved', withdrawal });
+    res.json({ message: 'Withdrawal Approved Successfully', withdrawal });
   } catch (error) {
     next(error);
   }
