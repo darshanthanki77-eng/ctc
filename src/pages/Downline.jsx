@@ -382,7 +382,6 @@ const TreeCanvas = memo(({ tree, searchQuery }) => {
     });
   }, []);
 
-  /* pan / zoom */
   const fitScreen = useCallback(() => {
     if (!containerRef.current) return;
     const cw = containerRef.current.clientWidth || 900;
@@ -391,14 +390,14 @@ const TreeCanvas = memo(({ tree, searchQuery }) => {
 
     const zX = (cw - 80) / svgW;
     const zY = (ch - 80) / svgH;
-    const z = Math.min(zX, zY, 1.1);
-    const safeZoom = Math.max(0.2, Math.min(z, 1.1));
+    const z = Math.min(zX, zY, 1.0);
+    const safeZoom = Math.max(0.55, Math.min(z, 1.1));
 
     const panX = (cw - svgW * safeZoom) / 2;
     const panY = 40;
 
     setZoom(safeZoom);
-    setPan({ x: panX, y: panY });
+    setPan({ x: Math.max(20, panX), y: panY });
   }, [svgW, svgH]);
 
   // Auto fit screen on initial load & tree updates
@@ -597,6 +596,14 @@ export default function Downline() {
       const parent = map[n.sponsor] || root;
       if (!parent.children.some(c => c._id === n._id)) parent.children.push(n);
     });
+
+    // Start level 2+ sub-branches collapsed by default for clean initial 100% zoom
+    Object.values(map).forEach(n => {
+      if (n._id !== currentUser._id && n.children && n.children.length > 0) {
+        n._collapsed = true;
+      }
+    });
+
     setTeamTree(root);
   }, [currentUser, directTeam, allLevels]);
 
