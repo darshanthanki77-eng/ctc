@@ -422,6 +422,25 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
     setTreeData(prev => updateNodeInTree(prev, nodeId, n => ({ ...n, _expanded:false })));
   }, []);
 
+  /* Focal-point zoom helper preserving center/cursor anchor */
+  const handleZoom = useCallback((factor, focalPt) => {
+    if (!containerRef.current) return;
+    const cw = containerRef.current.clientWidth  || 900;
+    const ch = containerRef.current.clientHeight || 600;
+    const fx = focalPt ? focalPt.x : cw / 2;
+    const fy = focalPt ? focalPt.y : ch / 2;
+
+    setZoom(prevZoom => {
+      const nextZoom = Math.min(Math.max(prevZoom * factor, 0.15), 3);
+      const ratio = nextZoom / prevZoom;
+      setPan(prevPan => ({
+        x: fx - (fx - prevPan.x) * ratio,
+        y: fy - (fy - prevPan.y) * ratio,
+      }));
+      return nextZoom;
+    });
+  }, []);
+
   /* Fit screen and auto-center all visible nodes */
   const fitScreen = useCallback(() => {
     if (!containerRef.current) return;
@@ -430,8 +449,8 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
     if (svgW <= 0 || svgH <= 0) return;
 
     // Calculate required zoom to fit all visible nodes within viewport bounds
-    const zX = (cw - 80) / svgW;
-    const zY = (ch - 80) / svgH;
+    const zX = (cw - 40) / svgW;
+    const zY = (ch - 40) / svgH;
     const targetZoom = Math.max(0.35, Math.min(zX, zY, 1.0));
 
     // Perfectly center the bounding box horizontally and vertically
@@ -465,7 +484,16 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
   const onTouchStart = useCallback(e => { if (e.target.closest('[data-node]')||e.target.closest('button')) return; if (e.touches.length===1) { setIsPanning(true); setPanStart({ x:e.touches[0].clientX-pan.x, y:e.touches[0].clientY-pan.y }); } }, [pan]);
   const onTouchMove  = useCallback(e => { if (!isPanning||e.touches.length!==1) return; setPan({ x:e.touches[0].clientX-panStart.x, y:e.touches[0].clientY-panStart.y }); }, [isPanning, panStart]);
   const onTouchEnd   = useCallback(()  => setIsPanning(false), []);
-  const onWheel      = useCallback(e => { e.preventDefault(); setZoom(z => Math.min(Math.max(z*(e.deltaY>0?0.9:1.1),0.15),3)); }, []);
+  const onWheel      = useCallback(e => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const focalPt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      const factor = e.deltaY < 0 ? 1.1 : 0.9;
+      handleZoom(factor, focalPt);
+    }
+  }, [handleZoom]);
 
   /* Search match */
   const searchMatch = n => {
@@ -483,8 +511,8 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
   }, [treeData]);
 
   const toolbarBtns = [
-    { icon:ZoomIn,    tip:'Zoom In',      fn:() => setZoom(z => Math.min(z*1.2, 3)) },
-    { icon:ZoomOut,   tip:'Zoom Out',     fn:() => setZoom(z => Math.max(z/1.2, 0.15)) },
+    { icon:ZoomIn,    tip:'Zoom In',      fn:() => handleZoom(1.2) },
+    { icon:ZoomOut,   tip:'Zoom Out',     fn:() => handleZoom(1/1.2) },
     { icon:RotateCcw, tip:'Reset View',   fn:resetZoom },
     { icon:Maximize2, tip:'Fit to Screen',fn:fitScreen },
     { icon:Home,      tip:'Center Root',  fn:centerRoot },
@@ -635,7 +663,7 @@ export default function Downline() {
       createdAt:       currentUser.createdAt,
       sponsorId:       currentUser.sponsorId,
       childrenCount:   0,
-      _expanded:       false,
+      _expanded:       true,
       _loading:        false,
       children:        [],
     };
@@ -689,7 +717,7 @@ export default function Downline() {
     // Link parents to direct children
     Object.values(map).forEach(n => {
       if (String(n._id) === String(currentUser._id)) return;
-      const parentId = String(n.sponsor);
+      const parentId = String(n.sponsor?._id || n.sponsor || '');
       const parent   = map[parentId] || root;
       if (!parent.children.some(c => String(c._id) === String(n._id))) {
         parent.children.push(n);
