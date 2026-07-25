@@ -422,22 +422,29 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
     setTreeData(prev => updateNodeInTree(prev, nodeId, n => ({ ...n, _expanded:false })));
   }, []);
 
-  /* Fit screen */
+  /* Fit screen and auto-center all visible nodes */
   const fitScreen = useCallback(() => {
     if (!containerRef.current) return;
     const cw = containerRef.current.clientWidth  || 900;
     const ch = containerRef.current.clientHeight || 600;
     if (svgW <= 0 || svgH <= 0) return;
+
+    // Calculate required zoom to fit all visible nodes within viewport bounds
     const zX = (cw - 80) / svgW;
     const zY = (ch - 80) / svgH;
-    // Keep zoom at 1.0 (100%) when root node is loaded; scale down only if tree overflows screen
-    const z  = Math.max(0.6, Math.min(zX, zY, 1.0));
-    setZoom(z);
-    setPan({ x: Math.max(20, (cw - svgW * z) / 2), y: 40 });
+    const targetZoom = Math.max(0.35, Math.min(zX, zY, 1.0));
+
+    // Perfectly center the bounding box horizontally and vertically
+    const panX = (cw - svgW * targetZoom) / 2;
+    const panY = Math.max(30, (ch - svgH * targetZoom) / 2);
+
+    setZoom(targetZoom);
+    setPan({ x: panX, y: panY });
   }, [svgW, svgH]);
 
+  // Auto-center whenever tree nodes expand or collapse
   useEffect(() => {
-    const t = setTimeout(() => fitScreen(), 150);
+    const t = setTimeout(() => fitScreen(), 80);
     return () => clearTimeout(t);
   }, [treeData, fitScreen]);
 
@@ -543,7 +550,7 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
         onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
         onWheel={onWheel}
       >
-        <div style={{ transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`, transformOrigin:'0 0', position:'absolute', width:svgW, height:svgH, transition:isPanning?'none':'transform 0.08s ease-out' }}>
+        <div style={{ transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`, transformOrigin:'0 0', position:'absolute', width:svgW, height:svgH, transition:isPanning?'none':'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)' }}>
           {/* SVG connectors */}
           <svg style={{ position:'absolute', top:0, left:0, width:svgW, height:svgH, pointerEvents:'none', overflow:'visible' }}>
             <defs>
