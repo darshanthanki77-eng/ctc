@@ -196,8 +196,8 @@ const NodeCard = memo(({ node, x, y, isHighlighted, onExpand, onCollapse }) => {
   const hasChildren = (node.childrenCount ?? 0) > 0;
   const isExpanded  = node._expanded && node.children && node.children.length > 0;
   const isLoading   = node._loading;
-  const statusColor = node.isActive ? '#22C55E' : '#94A3B8';
-  const borderLeft  = `4px solid ${node.isActive ? '#22C55E' : '#CBD5E1'}`;
+  const statusColor = node.isActive ? '#22C55E' : '#EF4444';
+  const borderLeft  = `4px solid ${node.isActive ? '#22C55E' : '#EF4444'}`;
 
   const joinDate = node.createdAt
     ? new Date(node.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
@@ -253,7 +253,7 @@ const NodeCard = memo(({ node, x, y, isHighlighted, onExpand, onCollapse }) => {
             position:'absolute', bottom:0, right:0,
             width:10, height:10, borderRadius:'50%',
             background: statusColor, border:'2px solid #fff',
-            boxShadow: node.isActive ? '0 0 6px #22C55E' : 'none',
+            boxShadow: `0 0 6px ${statusColor}`,
           }}/>
         </div>
 
@@ -268,8 +268,8 @@ const NodeCard = memo(({ node, x, y, isHighlighted, onExpand, onCollapse }) => {
         </div>
 
         {/* Status badge */}
-        <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:4, background: node.isActive ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.1)', borderRadius:20, padding:'3px 8px' }}>
-          <div style={{ width:5, height:5, borderRadius:'50%', background:statusColor, boxShadow: node.isActive ? '0 0 4px #22C55E' : 'none' }}/>
+        <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:4, background: node.isActive ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', borderRadius:20, padding:'3px 8px' }}>
+          <div style={{ width:5, height:5, borderRadius:'50%', background:statusColor, boxShadow: `0 0 4px ${statusColor}` }}/>
           <span style={{ fontSize:10, fontWeight:700, color:statusColor, whiteSpace:'nowrap' }}>
             {node.isActive ? 'Active' : 'Inactive'}
           </span>
@@ -520,12 +520,12 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
             onClick={() => setStatusFilter(prev => prev === 'inactive' ? 'all' : 'inactive')}
             style={{
               display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:20,
-              background: statusFilter === 'inactive' ? 'rgba(148,163,184,0.25)' : 'rgba(148,163,184,0.08)',
-              border: statusFilter === 'inactive' ? '1.5px solid #64748B' : '1px solid rgba(148,163,184,0.2)',
-              color: '#475569', cursor:'pointer', transition:'all 0.2s ease', fontWeight:700
+              background: statusFilter === 'inactive' ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.06)',
+              border: statusFilter === 'inactive' ? '1.5px solid #EF4444' : '1px solid rgba(239,68,68,0.2)',
+              color: '#B91C1C', cursor:'pointer', transition:'all 0.2s ease', fontWeight:700
             }}
           >
-            <div style={{ width:9, height:9, borderRadius:'50%', background:'#94A3B8' }}/>
+            <div style={{ width:9, height:9, borderRadius:'50%', background:'#EF4444', boxShadow:'0 0 6px #EF4444' }}/>
             Inactive Nodes {statusFilter === 'inactive' && '✓'}
           </button>
 
