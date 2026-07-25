@@ -8,7 +8,7 @@ import {
   Users, Globe, DollarSign, CheckCircle, Lock,
   AlertTriangle, Clock, Search, ZoomIn, ZoomOut,
   Maximize2, Home, RotateCcw, User, Network,
-  ChevronDown, ChevronUp, Loader2
+  ChevronDown, ChevronUp, Loader2, Plus, Minus
 } from 'lucide-react';
 import { fetchProfile } from '../redux/slices/authSlice';
 import api from '../api';
@@ -132,9 +132,9 @@ const NodeTooltip = memo(({ node, rect, visible, onMouseEnter, onMouseLeave, onS
           transition={{ duration:0.18, ease:'easeOut' }}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          style={{ position:'fixed', left:pos.left, top:pos.top, width:TIP_W, zIndex:99999, pointerEvents:'auto' }}
+          style={{ position:'fixed', left:pos.left, top:pos.top, width:TIP_W, zIndex:99999, pointerEvents:'none' }}
         >
-          <div style={{ background:'rgba(255,255,255,0.98)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', borderRadius:18, border:'1px solid rgba(243,16,253,0.22)', boxShadow:'0 20px 60px rgba(0,0,0,0.22)', padding:18, position:'relative' }}>
+          <div style={{ background:'rgba(255,255,255,0.98)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', borderRadius:18, border:'1px solid rgba(243,16,253,0.22)', boxShadow:'0 20px 60px rgba(0,0,0,0.22)', padding:18, position:'relative', pointerEvents:'auto' }}>
             {arrowDown && <div style={{ position:'absolute', bottom:-7, left:pos.arrowLeft-6, width:12, height:12, background:'rgba(255,255,255,0.98)', borderRight:'1px solid rgba(243,16,253,0.22)', borderBottom:'1px solid rgba(243,16,253,0.22)', transform:'rotate(45deg)' }}/>}
             {arrowUp   && <div style={{ position:'absolute', top:-7, left:pos.arrowLeft-6, width:12, height:12, background:'rgba(255,255,255,0.98)', borderLeft:'1px solid rgba(243,16,253,0.22)', borderTop:'1px solid rgba(243,16,253,0.22)', transform:'rotate(45deg)' }}/>}
             {/* Header */}
@@ -190,12 +190,8 @@ const NodeTooltip = memo(({ node, rect, visible, onMouseEnter, onMouseLeave, onS
 /* ─────────────────────────────────────────────
    PROFESSIONAL NODE CARD
 ───────────────────────────────────────────── */
-const NodeCard = memo(({ node, x, y, isHighlighted, onExpand, onCollapse, onHoverIn, onHoverOut }) => {
+const NodeCard = memo(({ node, x, y, isHighlighted, onExpand, onCollapse }) => {
   const cardRef = useRef(null);
-
-  const handleMouseEnter = useCallback(() => {
-    if (cardRef.current) onHoverIn(node, cardRef.current.getBoundingClientRect());
-  }, [node, onHoverIn]);
 
   const hasChildren = (node.childrenCount ?? 0) > 0;
   const isExpanded  = node._expanded && node.children && node.children.length > 0;
@@ -214,8 +210,11 @@ const NodeCard = memo(({ node, x, y, isHighlighted, onExpand, onCollapse, onHove
       initial={{ opacity:0, scale:0.88, y:-12 }}
       animate={{ opacity:1, scale:1,    y:0 }}
       transition={{ duration:0.22, ease:[0.16,1,0.3,1] }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={onHoverOut}
+      onClick={() => {
+        if (hasChildren && !isLoading) {
+          isExpanded ? onCollapse(node._id) : onExpand(node);
+        }
+      }}
       style={{
         position: 'absolute',
         left: x - NODE_W / 2,
@@ -232,6 +231,7 @@ const NodeCard = memo(({ node, x, y, isHighlighted, onExpand, onCollapse, onHove
         zIndex: isHighlighted ? 50 : 10,
         userSelect: 'none',
         overflow: 'hidden',
+        cursor: hasChildren ? 'pointer' : 'default',
       }}
     >
       {/* ── Header: Avatar + Name + Status */}
@@ -317,29 +317,30 @@ const NodeCard = memo(({ node, x, y, isHighlighted, onExpand, onCollapse, onHove
               if (isLoading) return;
               isExpanded ? onCollapse(node._id) : onExpand(node);
             }}
-            title={isExpanded ? 'Collapse children' : `Expand ${node.childrenCount} direct referral(s)`}
+            title={isExpanded ? 'Collapse children (−)' : `Expand ${node.childrenCount} direct referral(s) (+)`}
             style={{
-              width: 28, height: 28, borderRadius: '50%',
+              width: 30, height: 30, borderRadius: '50%',
               background: isExpanded
-                ? '#fff'
-                : 'linear-gradient(135deg,#7C3AED,#F310FD)',
-              border: isExpanded ? '1.5px solid rgba(243,16,253,0.4)' : 'none',
+                ? '#FFFFFF'
+                : 'linear-gradient(135deg, #7C3AED, #F310FD)',
+              border: isExpanded ? '2px solid #F310FD' : 'none',
               display:'flex', alignItems:'center', justifyContent:'center',
               cursor: isLoading ? 'wait' : 'pointer',
-              color: isExpanded ? '#F310FD' : '#fff',
-              boxShadow:'0 2px 10px rgba(243,16,253,0.25)',
+              color: isExpanded ? '#F310FD' : '#FFFFFF',
+              boxShadow: isExpanded ? '0 2px 8px rgba(243,16,253,0.2)' : '0 4px 14px rgba(243,16,253,0.35)',
               transition:'all 0.2s ease',
               flexShrink: 0,
             }}
-            onMouseEnter={e => { if (!isExpanded && !isLoading) e.currentTarget.style.transform = 'scale(1.15)'; }}
+            onMouseEnter={e => { if (!isLoading) e.currentTarget.style.transform = 'scale(1.15)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
           >
-            {isLoading
-              ? <Loader2 size={13} style={{ animation:'spin 1s linear infinite' }}/>
-              : isExpanded
-                ? <ChevronUp size={14}/>
-                : <ChevronDown size={14}/>
-            }
+            {isLoading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : isExpanded ? (
+              <Minus size={16} strokeWidth={3} />
+            ) : (
+              <Plus size={16} strokeWidth={3} />
+            )}
           </button>
         )}
       </div>
@@ -407,35 +408,13 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
     return paths;
   }, [treeData, positions]);
 
-  /* ── LAZY EXPAND: fetch children from API */
-  const expandNode = useCallback(async (node) => {
-    // mark loading
-    setTreeData(prev => updateNodeInTree(prev, node._id, n => ({ ...n, _loading:true })));
-    try {
-      const param = node.isRoot ? '' : `?userId=${node.userId}`;
-      const res   = await api.get(`/user/tree-children${param}`);
-      const childNodes = (res.data.children || []).map(c => ({
-        _id:          c._id,
-        userId:       c.userId,
-        fullName:     c.fullName,
-        totalInvestment: c.totalInvestment || 0,
-        isActive:     c.isActive,
-        totalTeam:    c.totalTeam  || 0,
-        childrenCount:c.childrenCount || 0,
-        packageName:  c.packageName || 'None',
-        rank:         c.rank || 'None',
-        createdAt:    c.createdAt,
-        sponsorId:    c.sponsorId,
-        _expanded:    false,
-        _loading:     false,
-        children:     [],
-      }));
-      setTreeData(prev => updateNodeInTree(prev, node._id, n => ({
-        ...n, _loading:false, _expanded:true, children: childNodes,
-      })));
-    } catch {
-      setTreeData(prev => updateNodeInTree(prev, node._id, n => ({ ...n, _loading:false })));
-    }
+  /* ── ONE-BY-ONE EXPAND: toggle _expanded flag */
+  const expandNode = useCallback((node) => {
+    setTreeData(prev => updateNodeInTree(prev, node._id, n => ({
+      ...n,
+      _expanded: true,
+      _loading: false,
+    })));
   }, []);
 
   /* ── COLLAPSE (keep children loaded, just hide) */
@@ -451,7 +430,8 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
     if (svgW <= 0 || svgH <= 0) return;
     const zX = (cw - 80) / svgW;
     const zY = (ch - 80) / svgH;
-    const z  = Math.max(0.35, Math.min(zX, zY, 1.1));
+    // Keep zoom at 1.0 (100%) when root node is loaded; scale down only if tree overflows screen
+    const z  = Math.max(0.6, Math.min(zX, zY, 1.0));
     setZoom(z);
     setPan({ x: Math.max(20, (cw - svgW * z) / 2), y: 40 });
   }, [svgW, svgH]);
@@ -595,23 +575,12 @@ const TreeCanvas = memo(({ rootNode, searchQuery }) => {
                   isHighlighted={isHighlighted}
                   onExpand={expandNode}
                   onCollapse={collapseNode}
-                  onHoverIn={handleHoverIn}
-                  onHoverOut={handleHoverOut}
                 />
               </div>
             );
           })}
         </div>
       </div>
-
-      {/* Tooltip portal */}
-      <NodeTooltip
-        node={tipNode}
-        rect={tipRect}
-        visible={tipVisible}
-        onMouseEnter={() => clearTimeout(hideTimer.current)}
-        onMouseLeave={handleHoverOut}
-      />
     </div>
   );
 });
@@ -642,34 +611,91 @@ export default function Downline() {
       .finally(() => setLoading(false));
   }, [dispatch]);
 
-  /* Build root-only tree node when profile loads */
+  /* Build tree node hierarchy when profile and team data load */
   useEffect(() => {
     if (!currentUser) return;
-    setRootNode({
-      _id:          currentUser._id,
-      userId:       currentUser.userId || 'You',
-      fullName:     currentUser.fullName || '',
-      totalInvestment: currentUser.totalInvestment || 0,
-      totalTeam:    currentUser.totalTeam || 0,
-      isActive:     true,
-      isRoot:       true,
-      rank:         currentUser.rank || 'None',
-      packageName:  currentUser.packageName || 'None',
-      createdAt:    currentUser.createdAt,
-      sponsorId:    currentUser.sponsorId,
-      // childrenCount pre-filled from directTeam once loaded
-      childrenCount: 0,
-      _expanded:    false,
-      _loading:     false,
-      children:     [],
-    });
-  }, [currentUser]);
 
-  /* Once directTeam loads, update root's childrenCount */
-  useEffect(() => {
-    if (!rootNode) return;
-    setRootNode(prev => prev ? { ...prev, childrenCount: directTeam.length } : prev);
-  }, [directTeam.length]);
+    const root = {
+      _id:             currentUser._id,
+      userId:          currentUser.userId || 'You',
+      fullName:        currentUser.fullName || '',
+      totalInvestment: currentUser.totalInvestment || 0,
+      totalTeam:       currentUser.totalTeam || 0,
+      isActive:        true,
+      isRoot:          true,
+      rank:            currentUser.rank || 'None',
+      packageName:     currentUser.packageName || 'None',
+      createdAt:       currentUser.createdAt,
+      sponsorId:       currentUser.sponsorId,
+      childrenCount:   0,
+      _expanded:       false,
+      _loading:        false,
+      children:        [],
+    };
+
+    const map = { [String(currentUser._id)]: root };
+
+    // Register all members from allLevels into map
+    allLevels.forEach(lvl => (lvl.members || []).forEach(m => {
+      const idStr = String(m._id);
+      if (!map[idStr]) {
+        map[idStr] = {
+          _id:             m._id,
+          userId:          m.userId,
+          fullName:        m.fullName,
+          totalInvestment: m.totalInvestment || 0,
+          totalTeam:       m.totalTeam || 0,
+          isActive:        m.isActive,
+          sponsor:         m.sponsor,
+          packageName:     m.packageName || 'None',
+          rank:            m.rank || 'None',
+          createdAt:       m.createdAt,
+          _expanded:       false,
+          _loading:        false,
+          children:        [],
+        };
+      }
+    }));
+
+    // Register directTeam members into map
+    directTeam.forEach(m => {
+      const idStr = String(m._id);
+      if (!map[idStr]) {
+        map[idStr] = {
+          _id:             m._id,
+          userId:          m.userId,
+          fullName:        m.fullName,
+          totalInvestment: m.totalInvestment || 0,
+          totalTeam:       m.totalTeam || 0,
+          isActive:        m.isActive,
+          sponsor:         m.sponsor,
+          packageName:     m.packageName || 'None',
+          rank:            m.rank || 'None',
+          createdAt:       m.createdAt,
+          _expanded:       false,
+          _loading:        false,
+          children:        [],
+        };
+      }
+    });
+
+    // Link parents to direct children
+    Object.values(map).forEach(n => {
+      if (String(n._id) === String(currentUser._id)) return;
+      const parentId = String(n.sponsor);
+      const parent   = map[parentId] || root;
+      if (!parent.children.some(c => String(c._id) === String(n._id))) {
+        parent.children.push(n);
+      }
+    });
+
+    // Set childrenCount for every node
+    Object.values(map).forEach(n => {
+      n.childrenCount = n.children.length;
+    });
+
+    setRootNode(root);
+  }, [currentUser, directTeam, allLevels]);
 
   /* Matrix table helpers */
   const activeDirects   = directTeam.filter(d => d.isActive).length;
