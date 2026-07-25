@@ -634,6 +634,7 @@ export default function Downline() {
   const [activeTab,    setActiveTab]    = useState('matrix');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [rootNode,     setRootNode]     = useState(null);
+  const [expandedLevels, setExpandedLevels] = useState({});
 
   useEffect(() => {
     dispatch(fetchProfile());
@@ -751,6 +752,7 @@ export default function Downline() {
       lvl, matchRate:`${LEVEL_PERCENTAGES[i]}%`, selfTarget:r.s, directsTarget:r.d, vol, status,
       qualified:status==='Qualified', locked:status==='Locked', deficit:status==='Deficit',
       deficitAmt:Math.max(0, r.s - stake),
+      members: dbL ? dbL.members : [],
     };
   });
 
@@ -769,15 +771,7 @@ export default function Downline() {
       <div style={{ marginBottom:24, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
         <div>
           <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:'var(--near-black)' }}>My Team Network</h2>
-          <p style={{ color:'var(--muted)', fontSize:13, marginTop:4 }}>30-level copy trade matrix · enterprise genealogy tree</p>
-        </div>
-        <div style={{ display:'flex', background:'rgba(255,255,255,0.5)', border:'1px solid rgba(243,16,253,0.15)', borderRadius:12, padding:4, backdropFilter:'blur(8px)' }}>
-          {['matrix','tree'].map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              style={{ padding:'8px 16px', borderRadius:8, fontSize:13, fontWeight:600, border:'none', cursor:'pointer', transition:'all 0.25s ease', background:activeTab===tab?'var(--gradient)':'transparent', color:activeTab===tab?'white':'var(--muted)' }}>
-              {tab === 'matrix' ? 'Matrix Qualification' : 'Genealogy Tree'}
-            </button>
-          ))}
+          <p style={{ color:'var(--muted)', fontSize:13, marginTop:4 }}>30-level copy trade matrix</p>
         </div>
       </div>
 
@@ -821,22 +815,71 @@ export default function Downline() {
                   {levelsData.map(row => {
                     const cfg  = STATUS_CFG[row.status] || STATUS_CFG.Locked;
                     const Icon = cfg.icon;
+                    const isExpanded = !!expandedLevels[row.lvl];
                     return (
-                      <tr key={row.lvl} style={{ borderLeft:`3px solid ${cfg.color}`, opacity:row.locked?0.6:1 }}>
-                        <td>
-                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', background:row.qualified?'rgba(34,197,94,0.12)':row.locked?'rgba(107,114,128,0.1)':'rgba(243,16,253,0.08)', border:`1.5px solid ${cfg.color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:cfg.color }}>{row.lvl}</div>
-                            <span style={{ fontSize:12, fontWeight:600, color:'var(--body-text)' }}>Level {row.lvl}</span>
-                          </div>
-                        </td>
-                        <td><span className="badge badge-pink">{row.matchRate}</span></td>
-                        <td>
-                          <div style={{ fontFamily:'monospace', fontWeight:700, fontSize:13, color:'var(--near-black)' }}>${row.selfTarget.toLocaleString()}</div>
-                          {row.deficit && <div style={{ fontSize:10, color:'var(--red)', fontWeight:600, marginTop:2, display:'flex', alignItems:'center', gap:3 }}><AlertTriangle size={9}/>Deficit: ${row.deficitAmt.toLocaleString()}</div>}
-                        </td>
-                        <td><div style={{ display:'flex', alignItems:'center', gap:5 }}><Users size={12} style={{ color:'var(--muted)' }}/><span style={{ fontSize:12 }}>{row.directsTarget}</span></div></td>
-                        <td><span className={`badge ${cfg.badge}`} style={{ display:'inline-flex', alignItems:'center', gap:4 }}><Icon size={10}/>{row.status}</span></td>
-                      </tr>
+                      <React.Fragment key={row.lvl}>
+                        <tr 
+                          onClick={() => setExpandedLevels(prev => ({ ...prev, [row.lvl]: !prev[row.lvl] }))}
+                          style={{ borderLeft:`3px solid ${cfg.color}`, opacity:row.locked?0.6:1, cursor:'pointer', transition:'background 0.2s' }}
+                        >
+                          <td>
+                            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                              <div style={{ width:28, height:28, borderRadius:'50%', background:row.qualified?'rgba(34,197,94,0.12)':row.locked?'rgba(107,114,128,0.1)':'rgba(243,16,253,0.08)', border:`1.5px solid ${cfg.color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:cfg.color }}>{row.lvl}</div>
+                              <span style={{ fontSize:12, fontWeight:600, color:'var(--body-text)', display:'flex', alignItems:'center', gap:4 }}>
+                                Level {row.lvl}
+                                {isExpanded ? <ChevronUp size={14} style={{ color:'var(--muted)' }}/> : <ChevronDown size={14} style={{ color:'var(--muted)' }}/>}
+                              </span>
+                            </div>
+                          </td>
+                          <td><span className="badge badge-pink">{row.matchRate}</span></td>
+                          <td>
+                            <div style={{ fontFamily:'monospace', fontWeight:700, fontSize:13, color:'var(--near-black)' }}>${row.selfTarget.toLocaleString()}</div>
+                            {row.deficit && <div style={{ fontSize:10, color:'var(--red)', fontWeight:600, marginTop:2, display:'flex', alignItems:'center', gap:3 }}><AlertTriangle size={9}/>Deficit: ${row.deficitAmt.toLocaleString()}</div>}
+                          </td>
+                          <td><div style={{ display:'flex', alignItems:'center', gap:5 }}><Users size={12} style={{ color:'var(--muted)' }}/><span style={{ fontSize:12 }}>{row.directsTarget}</span></div></td>
+                          <td><span className={`badge ${cfg.badge}`} style={{ display:'inline-flex', alignItems:'center', gap:4 }}><Icon size={10}/>{row.status}</span></td>
+                        </tr>
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={5} style={{ padding:'20px 24px', background:'rgba(243,16,253,0.02)', borderBottom:'1px solid rgba(243,16,253,0.08)' }}>
+                              <div style={{ fontSize:11, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:16 }}>
+                                Partners in Level {row.lvl}
+                              </div>
+                              {row.members && row.members.length > 0 ? (
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:14 }}>
+                                  {row.members.map(member => (
+                                    <div key={member._id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', background:'#fff', border:'1px solid rgba(243,16,253,0.08)', borderRadius:14, boxShadow:'0 4px 12px rgba(243,16,253,0.03)' }}>
+                                      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                                        <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(243,16,253,0.06)', border:'1px solid rgba(243,16,253,0.12)', display:'flex', alignItems:'center', justifyContent:'center', color:'#F310FD' }}>
+                                          <User size={18} />
+                                        </div>
+                                        <div>
+                                          <div style={{ fontSize:13, fontWeight:800, color:'var(--near-black)', textTransform:'uppercase' }}>
+                                            {member.fullName || '—'}
+                                          </div>
+                                          <div style={{ fontSize:11, color:'var(--muted)', fontWeight:500 }}>
+                                            {member.userId}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div style={{ textAlign:'right' }}>
+                                        <div style={{ fontSize:9, color:'var(--muted)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.03em' }}>Volume</div>
+                                        <div style={{ fontSize:13, fontWeight:800, color:'#F310FD' }}>
+                                          ${(member.totalInvestment || 0).toLocaleString()}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize:12, color:'var(--muted)', padding:'8px 0', fontStyle:'italic' }}>
+                                  No partners found in this level.
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
