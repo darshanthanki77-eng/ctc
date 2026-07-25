@@ -78,9 +78,8 @@ const Withdrawal = () => {
 
   // Regular Claim calculations
   const grossAmount = Number(amount) || 0;
-  const stabilityFee = grossAmount * 0.10;
-  const allocationFee = grossAmount * 0.10;
-  const netPayout = Math.max(0, grossAmount - stabilityFee - allocationFee);
+  const withdrawalFee = grossAmount * 0.10;
+  const netPayout = Math.max(0, grossAmount - withdrawalFee);
 
   // SOS Emergency Calculations
   const activeStakes = activePackages;
@@ -410,8 +409,7 @@ const Withdrawal = () => {
 
               {[
                 { label: 'Gross Amount',         value: `$${grossAmount.toFixed(2)} USDT`,    color: 'var(--near-black)', badge: null },
-                { label: 'Price Stability Fee',  value: `-$${stabilityFee.toFixed(2)}`,       color: 'var(--red)',        badge: '10%' },
-                { label: 'Allocation Fee',       value: `-$${allocationFee.toFixed(2)}`,      color: 'var(--red)',        badge: '10%' },
+                { label: 'Withdrawal Fee',       value: `-$${withdrawalFee.toFixed(2)}`,      color: 'var(--red)',        badge: null },
               ].map((r, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.05)', fontSize: 13 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

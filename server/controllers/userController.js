@@ -226,4 +226,44 @@ const getDashboardSettings = async (req, res, next) => {
   }
 };
 
-module.exports = { getUserProfile, getTeam, getMiningHistory, getLevelIncomeHistory, updateUserProfile, changePassword, getAnnouncement, getDepositAddresses, claimRankBonus, getDashboardSettings };
+const getTreeChildren = async (req, res, next) => {
+  try {
+    const { userId } = req.query;
+    // Find the target user — either by DB _id or CTC userId string
+    const targetUser = userId
+      ? await User.findOne({ userId }).select('_id userId fullName totalInvestment isActive sponsor')
+      : await User.findById(req.user._id).select('_id userId fullName totalInvestment isActive sponsor');
+
+    if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+    // Direct children (users whose sponsor === targetUser._id)
+    const children = await User.find({ sponsor: targetUser._id })
+      .select('_id userId fullName totalInvestment isActive sponsor')
+      .lean();
+
+    // For each child, count how many direct children they have
+    // so the frontend knows whether to show a "+" button
+    const childrenWithMeta = await Promise.all(
+      children.map(async (child) => {
+        const childCount = await User.countDocuments({ sponsor: child._id });
+        return { ...child, childrenCount: childCount };
+      })
+    );
+
+    res.json({
+      node: {
+        _id: targetUser._id,
+        userId: targetUser.userId,
+        fullName: targetUser.fullName,
+        totalInvestment: targetUser.totalInvestment,
+        isActive: targetUser.isActive,
+      },
+      children: childrenWithMeta,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getUserProfile, getTeam, getMiningHistory, getLevelIncomeHistory, updateUserProfile, changePassword, getAnnouncement, getDepositAddresses, claimRankBonus, getDashboardSettings, getTreeChildren };
+
