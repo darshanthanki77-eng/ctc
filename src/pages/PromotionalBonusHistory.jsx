@@ -6,18 +6,18 @@ import { fetchProfile } from '../redux/slices/authSlice';
 import api from '../api';
 
 const ranksList = [
-  { key: 'L1', display: 'D1',  self: 300,  main: 1500,  other: 0,        salary: 60,       total: 100 },
-  { key: 'L2', display: 'D2',  self: 300,  main: 1500,  other: 3500,     salary: 300,      total: 300 },
-  { key: 'L3', display: 'D3',  self: 300,  main: 4500,  other: 10500,    salary: 1000,     total: 800 },
-  { key: 'L4', display: 'D4',  self: 300,  main: 15750, other: 36750,    salary: 2400,     total: 2000 },
-  { key: 'L5', display: 'D5',  self: 300,  main: 31500, other: 73500,    salary: 4800,     total: 5000 },
-  { key: 'L6', display: 'D6',  self: 300,  main: 54000, other: 126000,   salary: 10000,    total: 10000 },
-  { key: 'L7', display: 'D7',  self: 300,  main: 180000,other: 420000,   salary: 20000,    total: 15000 },
-  { key: 'L8', display: 'D8',  self: 300,  main: 450000,other: 1050000,  salary: 35000,    total: 25000 },
-  { key: 'L9', display: 'D9',  self: 300,  main: 1080000,other:2520000,  salary: 50000,    total: 50000 },
-  { key: 'L10',display: 'D10', self: 300,  main: 4500000,other:10500000, salary: 100000,   total: 100000 },
-  { key: 'L11',display: 'D11', self: 300,  main: 9000000,other:21000000, salary: 200000,   total: 200000 },
-  { key: 'L12',display: 'D12', self: 300,  main: 18000000,other:42000000,salary: 500000,   total: 500000 },
+  { key: 'L1', display: 'L1',  self: 300,  main: 1500,  other: 0,        salary: 60,       total: 100 },
+  { key: 'L2', display: 'L2',  self: 300,  main: 1500,  other: 3500,     salary: 300,      total: 300 },
+  { key: 'L3', display: 'L3',  self: 300,  main: 4500,  other: 10500,    salary: 1000,     total: 800 },
+  { key: 'L4', display: 'L4',  self: 300,  main: 15750, other: 36750,    salary: 2400,     total: 2000 },
+  { key: 'L5', display: 'L5',  self: 300,  main: 31500, other: 73500,    salary: 4800,     total: 5000 },
+  { key: 'L6', display: 'L6',  self: 300,  main: 54000, other: 126000,   salary: 10000,    total: 10000 },
+  { key: 'L7', display: 'L7',  self: 300,  main: 180000,other: 420000,   salary: 20000,    total: 15000 },
+  { key: 'L8', display: 'L8',  self: 300,  main: 450000,other: 1050000,  salary: 35000,    total: 25000 },
+  { key: 'L9', display: 'L9',  self: 300,  main: 1080000,other:2520000,  salary: 50000,    total: 50000 },
+  { key: 'L10',display: 'L10', self: 300,  main: 4500000,other:10500000, salary: 100000,   total: 100000 },
+  { key: 'L11',display: 'L11', self: 300,  main: 9000000,other:21000000, salary: 200000,   total: 200000 },
+  { key: 'L12',display: 'L12', self: 300,  main: 18000000,other:42000000,salary: 500000,   total: 500000 },
 ];
 
 const rankBonusMap = {
@@ -26,6 +26,7 @@ const rankBonusMap = {
 };
 
 function GlassProgressRow({ label, current, required, pct, color }) {
+  const remaining = Math.max(0, required - current);
   return (
     <div style={{
       background: `${color}06`, border: `1px solid ${color}20`,
@@ -48,7 +49,12 @@ function GlassProgressRow({ label, current, required, pct, color }) {
           borderRadius: 100, transition: 'width 1s ease',
         }} />
       </div>
-      <div style={{ fontSize: 10, color: color, fontWeight: 700, marginTop: 6, textAlign: 'right' }}>{pct}% complete</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+        <span style={{ fontSize: 10, color: remaining > 0 ? 'var(--muted)' : 'var(--green)', fontWeight: 600 }}>
+          {remaining > 0 ? `Need: $${remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Completed'}
+        </span>
+        <span style={{ fontSize: 10, color: color, fontWeight: 700 }}>{pct}% complete</span>
+      </div>
     </div>
   );
 }
@@ -246,6 +252,28 @@ const PromotionalBonusHistory = () => {
         </div>
       </div>
 
+      {/* ── Real-Time Business Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 24 }}>
+        {[
+          { title: 'Total Team Business', value: totalTeamBusiness, color: '#A020F0', bg: 'rgba(160, 32, 240, 0.08)' },
+          { title: 'Main Leg (Strongest)', value: strongLegBusiness, color: '#7C3AED', bg: 'rgba(124, 58, 237, 0.08)' },
+          { title: 'Other Legs (Weaker)', value: otherLegsBusiness, color: '#0D9488', bg: 'rgba(13, 148, 136, 0.08)' }
+        ].map((item, idx) => (
+          <div key={idx} style={{
+            background: `linear-gradient(135deg, rgba(255,255,255,0.85) 0%, ${item.color}05 100%)`,
+            backdropFilter: 'blur(12px)', border: `1px solid ${item.color}20`,
+            borderRadius: 16, padding: '16px 18px',
+            boxShadow: `0 4px 20px ${item.color}08`,
+            textAlign: 'left'
+          }}>
+            <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>{item.title}</span>
+            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--near-black)', fontFamily: 'monospace' }}>
+              ${Number(item.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </h3>
+          </div>
+        ))}
+      </div>
+
       {/* ── Progress Card */}
       <div style={{
         background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(12px)',
@@ -258,6 +286,34 @@ const PromotionalBonusHistory = () => {
           <GlassProgressRow label="Self Stake"         current={currentUser?.totalInvestment || 0}      required={nextRankData.self}  pct={selfPct}  color="#F310FD" />
           <GlassProgressRow label="Main Leg Volume"    current={strongLegBusiness}                       required={nextRankData.main}  pct={mainPct}  color="#7C3AED" />
           <GlassProgressRow label="Other Legs Volume"  current={otherLegsBusiness}                      required={nextRankData.other} pct={otherPct} color="#0D9488" />
+        </div>
+      </div>
+
+      {/* ── Salary Condition Alert Banner */}
+      <div style={{
+        background: 'rgba(243, 16, 253, 0.05)',
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(243, 16, 253, 0.15)',
+        borderRadius: 18,
+        padding: '16px 20px',
+        marginBottom: 24,
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 14,
+        textAlign: 'left'
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: 'rgba(243, 16, 253, 0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+        }}>
+          <AlertTriangle size={18} style={{ color: 'var(--pink)' }} />
+        </div>
+        <div>
+          <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--near-black)' }}>Salary Maintenance Condition</h4>
+          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--muted)', lineHeight: '1.5' }}>
+            To qualify for the next month's salary payout, you must increase your weaker leg business volume by at least 10%.
+          </p>
         </div>
       </div>
 

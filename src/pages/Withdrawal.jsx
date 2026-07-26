@@ -178,7 +178,6 @@ const Withdrawal = () => {
     { title: 'Available Balance', value: currentUser?.availableBalance || 0, icon: Wallet, color: '#A020F0', bg: 'rgba(160, 32, 240, 0.08)' },
     { title: 'Total Earnings', value: currentUser?.totalEarning || 0, icon: TrendingUp, color: '#22C55E', bg: 'rgba(34, 197, 94, 0.08)' },
     { title: 'Copy Trade ROI', value: currentUser?.miningIncome || 0, icon: Cpu, color: '#00C6FF', bg: 'rgba(0, 198, 255, 0.08)' },
-    { title: 'Principal Withdrawal', value: activePackages.reduce((acc, p) => acc + p.amount, 0), icon: Lock, color: '#FF00FF', bg: 'rgba(255, 0, 255, 0.08)' },
     { title: 'Level Income', value: currentUser?.levelIncome || 0, icon: Layers, color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)' },
     { title: 'Promotional Income', value: currentUser?.promotionalIncome || 0, icon: Gift, color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)' }
   ];
