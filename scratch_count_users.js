@@ -44,7 +44,7 @@ const getLegCounts = (userId) => {
   const legCounts = [];
   for (let dir of directs) {
     const dirId = dir._id.$oid || dir._id;
-    const legCount = 1 + getTeamCount(dirId);
+    const legCount = getTeamCount(dirId);
     legCounts.push({ id: dirId, rank: dir.rank || 'None', count: legCount });
   }
   return legCounts;

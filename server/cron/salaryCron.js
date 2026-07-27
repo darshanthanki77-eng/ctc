@@ -15,7 +15,7 @@ const getLegBusinesses = async (userId) => {
   const directs = await User.find({ sponsor: userId, isActive: true, pins: { $gt: 0 } });
   const legBusinesses = [];
   for (let dir of directs) {
-    const legBusiness = (dir.totalInvestment || 0) + await getTeamBusiness(dir._id);
+    const legBusiness = await getTeamBusiness(dir._id);
     legBusinesses.push({ id: dir._id, business: legBusiness });
   }
   return legBusinesses;
