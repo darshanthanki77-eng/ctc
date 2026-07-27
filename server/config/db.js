@@ -45,6 +45,25 @@ const connectDB = async () => {
       }
       console.log('[DB] Compounding balance and staking fields backfill complete.');
     }
+
+    // Auto-backfill and sync availableBalance with total earnings minus approved withdrawals for all users
+    const User = require('../models/User');
+    const Withdrawal = require('../models/Withdrawal');
+    const usersToSync = await User.find();
+    console.log(`[DB] Syncing availableBalance for ${usersToSync.length} users...`);
+    for (let u of usersToSync) {
+      const withdrawals = await Withdrawal.find({ user: u._id, status: 'approved' });
+      const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0);
+      
+      const expectedBalance = (u.miningIncome || 0) + (u.referralIncome || 0) + (u.levelIncome || 0) + (u.promotionalIncome || 0) - totalWithdrawn;
+      
+      if (Math.abs((u.availableBalance || 0) - expectedBalance) > 0.01) {
+        console.log(`[DB] Syncing balance for User ${u.userId}: current=${u.availableBalance}, expected=${expectedBalance}`);
+        u.availableBalance = expectedBalance;
+        await u.save();
+      }
+    }
+    console.log('[DB] User availableBalance sync complete.');
   } catch (error) {
     console.error(`MongoDB connection error: ${error.message}`);
     // Do NOT call process.exit(1) — on Vercel serverless it kills the handler
