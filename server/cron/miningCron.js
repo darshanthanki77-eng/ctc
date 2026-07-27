@@ -274,10 +274,8 @@ const runMiningCronCycle = async (force = false) => {
       // Determine if staking is active for compounding decision
       const isStakingActive = pkg.stakingEnabled || (pkg.isStaked && !pkg.stakingEndDate);
 
-      // If package is staked, it auto-compounds. 
-      // This means profit is added to compoundingBalance, but withdrawableAmount is 0 (locked until end).
-      // If package is standard, it does not compound. Profit goes to availableBalance, compoundingBalance remains equal to pkg.amount.
-      const withdrawableAmount = isStakingActive ? 0 : profitAmount;
+      // Profit always goes to availableBalance as requested
+      const withdrawableAmount = profitAmount;
  
       user.miningIncome = round6(user.miningIncome + profitAmount);
       user.totalEarning = round6(user.totalEarning + profitAmount); // 100% of profit counts towards the cap!

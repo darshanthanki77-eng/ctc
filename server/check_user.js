@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
-const User = require('./server/models/User');
-const Transaction = require('./server/models/Transaction');
-const Withdrawal = require('./server/models/Withdrawal');
-require('dotenv').config({path: './server/.env'});
+const User = require('./models/User');
+const Transaction = require('./models/Transaction');
+const Withdrawal = require('./models/Withdrawal');
+require('dotenv').config({path: './.env'});
 
-mongoose.connect(process.env.MONGO_URI).then(async () => {
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/ctc').then(async () => {
   const user = await User.findOne({ userId: 'CTC26597' });
   if (!user) {
     console.log('User CTC26597 not found');
