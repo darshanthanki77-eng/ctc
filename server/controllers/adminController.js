@@ -455,7 +455,69 @@ const updatePackage = async (req, res, next) => {
 const getCronStatus = async (req, res, next) => {
   try {
     const states = await CronState.find();
-    res.json(states);
+    const MiningIncome = require('../models/MiningIncome');
+    
+    
+    // Aggregate daily ROI workflow runs by date and 12-hour cycle window (UTC 0 / UTC 12)
+    const aggregatedRuns = await MiningIncome.aggregate([
+      {
+        $group: {
+          _id: {
+            date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            hourGroup: { $cond: [{ $lt: [{ $hour: '$createdAt' }, 12] }, '0', '12'] },
+            triggerType: { $ifNull: ['$triggerType', 'Manual'] }
+          },
+          accountsProcessed: { $sum: 1 },
+          totalAmountDistributed: { $sum: '$amount' },
+          firstExecutedAt: { $min: '$createdAt' },
+          lastExecutedAt: { $max: '$createdAt' }
+        }
+      },
+      { $sort: { lastExecutedAt: -1 } },
+      { $limit: 500 }
+    ]);
+
+    const totalRuns = aggregatedRuns.length;
+
+    // Transform into GitHub Action workflow run objects
+    const workflowRuns = aggregatedRuns.map((run, index) => {
+      const runNumber = totalRuns - index;
+      const isManual = run._id.triggerType === 'Manual';
+      const cycleHour = run._id.hourGroup;
+      const cycleId = `MINING_${run._id.date}_${cycleHour}`;
+
+      return {
+        id: `${run._id.date}_${cycleHour}_${run._id.triggerType}`,
+        runNumber: runNumber,
+        name: 'Mining Cron (Direct)',
+        cycleId: cycleId,
+        event: isManual ? 'workflow_dispatch' : 'scheduled',
+        triggerType: isManual ? 'Manual Trigger' : 'Scheduled',
+        status: 'success',
+        branch: 'main',
+        accountsProcessed: run.accountsProcessed,
+        totalAmountDistributed: run.totalAmountDistributed,
+        timestamp: run.lastExecutedAt,
+        dateStr: run._id.date,
+        hourGroup: cycleHour
+      };
+    });
+
+    const totalDistributed = await MiningIncome.aggregate([
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+
+    const totalCount = await MiningIncome.countDocuments();
+
+    res.json({
+      states,
+      workflowRuns,
+      summary: {
+        totalAmount: totalDistributed[0]?.total || 0,
+        totalLogsCount: totalCount,
+        totalRunsCount: totalRuns
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -466,6 +528,65 @@ const triggerMiningCron = async (req, res, next) => {
     const { runMiningCronCycle } = require('../cron/miningCron');
     const result = await runMiningCronCycle(true); // force = true
     res.json({ message: 'Mining cron manually executed', result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCronRunDetails = async (req, res, next) => {
+  try {
+    const { date, triggerType, hourGroup } = req.query;
+    if (!date) {
+      return res.status(400).json({ message: 'Date parameter is required' });
+    }
+
+    const MiningIncome = require('../models/MiningIncome');
+
+    let startDate = new Date(`${date}T00:00:00.000Z`);
+    let endDate = new Date(`${date}T23:59:59.999Z`);
+
+    if (hourGroup === '0') {
+      endDate = new Date(`${date}T11:59:59.999Z`);
+    } else if (hourGroup === '12') {
+      startDate = new Date(`${date}T12:00:00.000Z`);
+    }
+
+    const query = {
+      createdAt: { $gte: startDate, $lte: endDate }
+    };
+
+    if (triggerType) {
+      const lowerType = triggerType.toLowerCase();
+      if (lowerType.includes('manual')) {
+        query.$or = [
+          { triggerType: { $in: ['Manual', 'Manual Trigger'] } },
+          { isManual: true }
+        ];
+      } else if (lowerType.includes('auto') || lowerType.includes('schedul')) {
+        query.$or = [
+          { triggerType: { $in: ['Auto', 'Scheduled'] } },
+          { isManual: { $ne: true } }
+        ];
+      }
+    }
+
+    const records = await MiningIncome.find(query)
+      .populate('user', 'userId fullName email availableBalance totalEarning totalInvestment')
+      .populate('userPackageId')
+      .sort({ createdAt: -1 });
+
+    const totalDistributed = records.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+    res.json({
+      runInfo: {
+        date,
+        triggerType: triggerType || 'All',
+        totalAccounts: records.length,
+        totalDistributed,
+        timestamp: records[0]?.createdAt || startDate
+      },
+      records
+    });
   } catch (error) {
     next(error);
   }
@@ -1000,6 +1121,7 @@ module.exports = {
   getUserPackages,
   updatePackage,
   getCronStatus,
+  getCronRunDetails,
   triggerMiningCron,
   getAllTransactions,
   updateUser,

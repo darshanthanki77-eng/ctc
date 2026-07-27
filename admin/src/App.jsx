@@ -10,6 +10,7 @@ import Referrals from './pages/Referrals';
 import Mining from './pages/Mining';
 import Settings from './pages/Settings';
 import Cron from './pages/Cron';
+import CronRunDetail from './pages/CronRunDetail';
 import Fraud from './pages/Fraud';
 import Transactions from './pages/Transactions';
 import PackageHistory from './pages/PackageHistory';
@@ -42,6 +43,7 @@ function App() {
           <Route path="mining" element={<Mining />} />
           <Route path="settings" element={<Settings />} />
           <Route path="cron" element={<Cron />} />
+          <Route path="cron/run/:date" element={<CronRunDetail />} />
           <Route path="fraud" element={<Fraud />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

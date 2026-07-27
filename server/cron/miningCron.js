@@ -169,6 +169,19 @@ const runMiningCronCycle = async (force = false) => {
         console.log(`[CRON] Processing package ${idx}/${activePackages.length} (ID: ${pkg._id}) for user ${user.userId}`);
       }
 
+      // Check if MiningIncome was already credited for this package in the current 12-hour cycle window
+      const cycleStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), cycleHour, 0, 0));
+      const cycleEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), cycleHour + 11, 59, 59, 999));
+      
+      const alreadyEarned = await MiningIncome.findOne({
+        userPackageId: pkg._id,
+        createdAt: { $gte: cycleStart, $lte: cycleEnd }
+      });
+      if (alreadyEarned) {
+        console.log(`[CRON] Package ${pkg._id} (${user.userId}) already credited in cycle ${cycleId}. Skipping.`);
+        continue;
+      }
+
       // Check if staking duration has completed for active package
       if (pkg.stakingEnabled && pkg.stakingEndDate && pkg.stakingEndDate <= new Date()) {
         pkg.stakingEnabled = false;
@@ -253,7 +266,9 @@ const runMiningCronCycle = async (force = false) => {
         packageId: pkg.packageId,
         userPackageId: pkg._id,
         amount: profitAmount,
-        percentage: user.fastrackQualified ? totalDailyPercent * 2 : totalDailyPercent
+        percentage: user.fastrackQualified ? totalDailyPercent * 2 : totalDailyPercent,
+        triggerType: force ? 'Manual' : 'Auto',
+        isManual: !!force
       });
  
       // Determine if staking is active for compounding decision

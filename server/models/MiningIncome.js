@@ -8,7 +8,9 @@ const miningIncomeSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   percentage: { type: Number, required: true },
   date: { type: Date, default: Date.now },
-  status: { type: String, default: 'credited' }
+  status: { type: String, default: 'credited' },
+  triggerType: { type: String, enum: ['Auto', 'Manual'], default: 'Auto' },
+  isManual: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('MiningIncome', miningIncomeSchema);

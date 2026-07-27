@@ -17,6 +17,7 @@ const {
   getUserPackages,
   updatePackage,
   getCronStatus,
+  getCronRunDetails,
   triggerMiningCron,
   getAllTransactions,
   updateUser,
@@ -86,6 +87,7 @@ router.post('/upload-announcement', protect, admin, upload.single('image'), (req
 
 // Cron Control Routes
 router.route('/cron/status').get(protect, admin, getCronStatus);
+router.route('/cron/run-details').get(protect, admin, getCronRunDetails);
 router.route('/cron/trigger').post(protect, admin, triggerMiningCron);
 
 // Transaction History Routes
