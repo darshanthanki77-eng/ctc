@@ -271,10 +271,7 @@ const Withdrawal = () => {
                 <label className="form-label">Select Withdrawal Source</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
                   {[
-                    { id: 'balance', name: 'Available Balance', value: sourceBalances.balance },
-                    { id: 'mining', name: 'Copy Trade ROI', value: sourceBalances.mining },
-                    { id: 'level', name: 'Level Income', value: sourceBalances.level },
-                    { id: 'promotional', name: 'Promo Income', value: sourceBalances.promotional }
+                    { id: 'balance', name: 'Available Balance', value: sourceBalances.balance }
                   ].map(src => {
                     const isSel = selectedSourceId === src.id;
                     return (
