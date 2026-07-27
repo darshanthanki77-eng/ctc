@@ -55,7 +55,15 @@ const AdminLayout = () => {
 
         {/* Navigation Items */}
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 hide-scrollbar">
-          {navItems.map((item) => {
+          {navItems.filter((item) => {
+            if (!adminUser) return false;
+            if (adminUser.role === 'admin') return true;
+            if (adminUser.role === 'subadmin') {
+              const pageKey = item.path.replace('/', '');
+              return adminUser.accessiblePages && adminUser.accessiblePages.includes(pageKey);
+            }
+            return false;
+          }).map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
             return (
@@ -85,7 +93,9 @@ const AdminLayout = () => {
               </div>
               <div className="truncate w-32">
                 <span className="block text-xs font-semibold text-white truncate">{adminUser?.email || 'Administrator'}</span>
-                <span className="block text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Super Admin</span>
+                <span className="block text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                  {adminUser?.role === 'admin' ? 'Super Admin' : 'Sub Admin'}
+                </span>
               </div>
             </div>
             <button 

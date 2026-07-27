@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { setWalletAddress, fetchProfile } from '../redux/slices/authSlice';
+import { setWalletAddress, fetchProfile, logout } from '../redux/slices/authSlice';
 import Sidebar from './Sidebar';
-import { Menu, X, Bell, Globe, Wallet } from 'lucide-react';
+import { Menu, X, Bell, Globe, Wallet, User, LogOut } from 'lucide-react';
 import { toast } from 'react-toastify';
 import logo from '../assets/logo.png';
 
 const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [showBell, setShowBell] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -106,7 +107,7 @@ const Layout = () => {
           <div className="topbar-right">
             {/* Connect Wallet */}
             <button
-              className="btn-outline btn-sm"
+              className="btn-outline btn-sm wallet-btn-header"
               onClick={walletAddress ? disconnectWallet : connectWallet}
               aria-label={walletAddress ? 'Disconnect wallet' : 'Connect wallet'}
             >
@@ -121,6 +122,23 @@ const Layout = () => {
                   <span className="connect-text">Connect</span>
                 </>
               )}
+            </button>
+
+            {/* Mobile Profile Trigger */}
+            <button
+              onClick={() => setIsRightSidebarOpen(true)}
+              className="mobile-profile-btn"
+              style={{
+                width: 38, height: 38,
+                border: '1px solid var(--glass-border)', borderRadius: 10,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--gray)', background: 'var(--glass-bg)',
+                backdropFilter: 'blur(8px)',
+                cursor: 'pointer', transition: 'var(--transition-fast)',
+              }}
+              aria-label="Open profile menu"
+            >
+              <User size={16} />
             </button>
 
             {/* Notification Bell */}
@@ -192,6 +210,90 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Right Mobile Sidebar */}
+      <aside className={`right-sidebar${isRightSidebarOpen ? ' open' : ''}`}>
+        <div className="sidebar-logo" style={{ justifyContent: 'space-between', padding: '0 20px', display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--near-black)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account Menu</span>
+          <button
+            onClick={() => setIsRightSidebarOpen(false)}
+            style={{ color: 'var(--gray)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+            aria-label="Close profile menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="sidebar-nav" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <button
+            onClick={() => {
+              setIsRightSidebarOpen(false);
+              navigate('/profile');
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', padding: '12px 16px', borderRadius: 10,
+              background: 'rgba(243,16,253,0.05)', border: '1px solid rgba(243,16,253,0.1)',
+              color: 'var(--near-black)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <User size={16} />
+            <span>Go to Profile</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setIsRightSidebarOpen(false);
+              dispatch(logout());
+              navigate('/login');
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', padding: '12px 16px', borderRadius: 10,
+              background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.1)',
+              color: 'rgb(239,68,68)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <LogOut size={16} />
+            <span>Sign Out</span>
+          </button>
+        </div>
+
+        <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '20px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(243,16,253,0.05)', border: '1px solid rgba(243,16,253,0.1)',
+            borderRadius: 10, padding: '8px 12px',
+          }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%',
+              background: 'var(--gradient)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', color: 'white', fontSize: 13, fontWeight: 700, flexShrink: 0,
+            }}>
+              {currentUser?.fullName?.[0]?.toUpperCase() || 'U'}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--near-black)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentUser?.fullName || 'User'}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--muted)' }}>
+                {currentUser?.userId || 'N/A'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Overlay for Right Sidebar */}
+      {isRightSidebarOpen && (
+        <div 
+          className="sidebar-overlay"
+          style={{ zIndex: 45, display: 'block' }}
+          onClick={() => setIsRightSidebarOpen(false)}
+        ></div>
+      )}
     </div>
   );
 };

@@ -37,7 +37,9 @@ const Users = () => {
     withdrawalWallet: '',
     withdrawalPin: '',
     achieverBadge: '',
-    password: ''
+    password: '',
+    role: 'user',
+    accessiblePages: []
   });
 
   const fetchUsers = async () => {
@@ -99,7 +101,9 @@ const Users = () => {
       withdrawalWallet: user.withdrawalWallet || '',
       withdrawalPin: user.withdrawalPin || '',
       achieverBadge: user.achieverBadge || '',
-      password: ''
+      password: '',
+      role: user.role || 'user',
+      accessiblePages: user.accessiblePages || []
     });
   };
 
@@ -300,7 +304,15 @@ const Users = () => {
                 {currentUsers.map((user) => (
                   <tr key={user._id} className="hover:bg-[#161B2A]/20 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-semibold text-white">{user.fullName}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold text-white">{user.fullName}</div>
+                        {user.role === 'admin' && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-wider">Admin</span>
+                        )}
+                        {user.role === 'subadmin' && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-wider">Sub</span>
+                        )}
+                      </div>
                       <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
                         <span>{user.email}</span>
                         <button
@@ -542,7 +554,7 @@ const Users = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
                       <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Reset Password</label>
                       <input
@@ -553,7 +565,63 @@ const Users = () => {
                         placeholder="Leave blank to keep current password"
                       />
                     </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">User Role</label>
+                      <select
+                        value={editForm.role}
+                        onChange={(e) => setEditForm({ ...editForm, role: e.target.value, accessiblePages: e.target.value === 'subadmin' ? editForm.accessiblePages : [] })}
+                        className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                      >
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                        <option value="subadmin">Sub-Admin</option>
+                      </select>
+                    </div>
                   </div>
+
+                  {editForm.role === 'subadmin' && (
+                    <div className="bg-[#161B2A]/30 border border-gray-800 p-4 rounded-xl mt-4">
+                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-3">Accessible Pages (Show/Hide Page Access)</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {[
+                          { key: 'dashboard', name: 'Dashboard' },
+                          { key: 'users', name: 'User Management' },
+                          { key: 'packages', name: 'Package Control' },
+                          { key: 'package-history', name: 'Package History' },
+                          { key: 'manual-buys', name: 'Manual Buy Requests' },
+                          { key: 'withdrawals', name: 'Withdrawals' },
+                          { key: 'kyc', name: 'KYC Verification' },
+                          { key: 'referrals', name: 'Referral & Level' },
+                          { key: 'mining', name: 'Mining Control' },
+                          { key: 'settings', name: 'System Settings' },
+                          { key: 'cron', name: 'Cron Monitoring' },
+                          { key: 'fraud', name: 'Fraud Monitoring' },
+                          { key: 'transactions', name: 'Transactions Audit' },
+                        ].map((page) => {
+                          const isChecked = editForm.accessiblePages?.includes(page.key);
+                          return (
+                            <label key={page.key} className="flex items-center gap-2 text-xs font-semibold text-gray-300 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  let newPages = [...(editForm.accessiblePages || [])];
+                                  if (e.target.checked) {
+                                    if (!newPages.includes(page.key)) newPages.push(page.key);
+                                  } else {
+                                    newPages = newPages.filter((p) => p !== page.key);
+                                  }
+                                  setEditForm({ ...editForm, accessiblePages: newPages });
+                                }}
+                                className="rounded bg-gray-900 border-gray-700 text-[#A020F0] focus:ring-[#A020F0]"
+                              />
+                              <span>{page.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -752,8 +820,28 @@ const Users = () => {
                       {selectedUser.fullName?.[0] || 'U'}
                     </div>
                     <div>
-                      <h4 className="font-bold text-white">{selectedUser.fullName}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-white">{selectedUser.fullName}</h4>
+                        {selectedUser.role === 'admin' && (
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-wider">Admin</span>
+                        )}
+                        {selectedUser.role === 'subadmin' && (
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-wider">Sub-Admin</span>
+                        )}
+                      </div>
                       <div className="flex flex-col gap-1 sm:flex-row sm:items-center text-xs text-gray-400 mt-1">
+                        {selectedUser.role === 'subadmin' && (
+                          <div className="w-full mb-2">
+                            <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Accessible Pages:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {selectedUser.accessiblePages?.map((page) => (
+                                <span key={page} className="px-1.5 py-0.5 rounded text-[9px] bg-[#A020F0]/10 text-[#FF00FF] border border-[#A020F0]/20 font-semibold uppercase">
+                                  {page.replace('-', ' ')}
+                                </span>
+                              )) || <span className="text-xs text-gray-500">None</span>}
+                            </div>
+                          </div>
+                        )}
                         <span className="flex items-center gap-1"><Mail size={12}/> {selectedUser.email}</span>
                         {selectedUser.phone && (
                           <>

@@ -22,7 +22,7 @@ const Login = () => {
       const res = await api.post('/admin/login', { userId, password });
       const user = res.data;
       
-      if (user.role !== 'admin') {
+      if (user.role !== 'admin' && user.role !== 'subadmin') {
         toast.error('Access Denied: Not authorized as Administrator');
         setLoading(false);
         return;
@@ -30,7 +30,20 @@ const Login = () => {
       
       localStorage.setItem('adminUser', JSON.stringify(user));
       toast.success('Admin login successful!');
-      navigate('/dashboard');
+      
+      if (user.role === 'subadmin' && user.accessiblePages && !user.accessiblePages.includes('dashboard')) {
+        const firstPage = user.accessiblePages[0];
+        if (firstPage) {
+          navigate(`/${firstPage}`);
+        } else {
+          toast.error('No accessible pages configured for this account');
+          localStorage.removeItem('adminUser');
+          setLoading(false);
+          return;
+        }
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed. Please verify credentials.');
     } finally {

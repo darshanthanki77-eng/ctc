@@ -19,10 +19,39 @@ import Login from './pages/Login';
 
 const ProtectedRoute = ({ children }) => {
   const adminUser = JSON.parse(localStorage.getItem('adminUser'));
-  if (!adminUser || adminUser.role !== 'admin') {
+  if (!adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'subadmin')) {
     return <Navigate to="/login" replace />;
   }
   return children;
+};
+
+const PageProtectedRoute = ({ children, pageKey }) => {
+  const adminUser = JSON.parse(localStorage.getItem('adminUser'));
+  if (!adminUser) return <Navigate to="/login" replace />;
+  if (adminUser.role === 'admin') return children;
+  if (adminUser.role === 'subadmin') {
+    if (adminUser.accessiblePages && adminUser.accessiblePages.includes(pageKey)) {
+      return children;
+    }
+    const firstPage = adminUser.accessiblePages?.[0];
+    if (firstPage) {
+      return <Navigate to={`/${firstPage}`} replace />;
+    }
+  }
+  return <Navigate to="/login" replace />;
+};
+
+const IndexRedirect = () => {
+  const adminUser = JSON.parse(localStorage.getItem('adminUser'));
+  if (!adminUser) return <Navigate to="/login" replace />;
+  if (adminUser.role === 'admin' || (adminUser.accessiblePages && adminUser.accessiblePages.includes('dashboard'))) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  const firstPage = adminUser.accessiblePages?.[0];
+  if (firstPage) {
+    return <Navigate to={`/${firstPage}`} replace />;
+  }
+  return <Navigate to="/login" replace />;
 };
 
 function App() {
@@ -31,22 +60,22 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="users" element={<Users />} />
-          <Route path="packages" element={<Packages />} />
-          <Route path="package-history" element={<PackageHistory />} />
-          <Route path="manual-buys" element={<ManualBuys />} />
-          <Route path="withdrawals" element={<Withdrawals />} />
-          <Route path="kyc" element={<Kyc />} />
-          <Route path="referrals" element={<Referrals />} />
-          <Route path="mining" element={<Mining />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="cron" element={<Cron />} />
-          <Route path="cron/run/:date" element={<CronRunDetail />} />
-          <Route path="fraud" element={<Fraud />} />
-          <Route path="transactions" element={<Transactions />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<IndexRedirect />} />
+          <Route path="dashboard" element={<PageProtectedRoute pageKey="dashboard"><Dashboard /></PageProtectedRoute>} />
+          <Route path="users" element={<PageProtectedRoute pageKey="users"><Users /></PageProtectedRoute>} />
+          <Route path="packages" element={<PageProtectedRoute pageKey="packages"><Packages /></PageProtectedRoute>} />
+          <Route path="package-history" element={<PageProtectedRoute pageKey="package-history"><PackageHistory /></PageProtectedRoute>} />
+          <Route path="manual-buys" element={<PageProtectedRoute pageKey="manual-buys"><ManualBuys /></PageProtectedRoute>} />
+          <Route path="withdrawals" element={<PageProtectedRoute pageKey="withdrawals"><Withdrawals /></PageProtectedRoute>} />
+          <Route path="kyc" element={<PageProtectedRoute pageKey="kyc"><Kyc /></PageProtectedRoute>} />
+          <Route path="referrals" element={<PageProtectedRoute pageKey="referrals"><Referrals /></PageProtectedRoute>} />
+          <Route path="mining" element={<PageProtectedRoute pageKey="mining"><Mining /></PageProtectedRoute>} />
+          <Route path="settings" element={<PageProtectedRoute pageKey="settings"><Settings /></PageProtectedRoute>} />
+          <Route path="cron" element={<PageProtectedRoute pageKey="cron"><Cron /></PageProtectedRoute>} />
+          <Route path="cron/run/:date" element={<PageProtectedRoute pageKey="cron"><CronRunDetail /></PageProtectedRoute>} />
+          <Route path="fraud" element={<PageProtectedRoute pageKey="fraud"><Fraud /></PageProtectedRoute>} />
+          <Route path="transactions" element={<PageProtectedRoute pageKey="transactions"><Transactions /></PageProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

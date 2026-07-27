@@ -33,7 +33,7 @@ const adminLogin = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    if (user.role !== 'admin') {
+    if (user.role !== 'admin' && user.role !== 'subadmin') {
       return res.status(403).json({ message: 'Access Denied: Not authorized as Administrator.' });
     }
 
@@ -43,6 +43,7 @@ const adminLogin = async (req, res, next) => {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
+      accessiblePages: user.accessiblePages,
       token: generateAdminToken(user._id),
     });
   } catch (error) {
@@ -691,7 +692,9 @@ const updateUser = async (req, res, next) => {
       withdrawalWallet,
       withdrawalPin,
       achieverBadge,
-      password
+      password,
+      role,
+      accessiblePages
     } = req.body;
 
     const user = await User.findById(id);
@@ -714,6 +717,8 @@ const updateUser = async (req, res, next) => {
     if (withdrawalWallet !== undefined) user.withdrawalWallet = withdrawalWallet;
     if (withdrawalPin !== undefined) user.withdrawalPin = withdrawalPin;
     if (achieverBadge !== undefined) user.achieverBadge = achieverBadge;
+    if (role !== undefined) user.role = role;
+    if (accessiblePages !== undefined) user.accessiblePages = accessiblePages;
 
     if (password) {
       const salt = await bcrypt.genSalt(10);

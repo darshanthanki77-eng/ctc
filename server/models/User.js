@@ -125,8 +125,12 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'admin', 'subadmin'],
       default: 'user',
+    },
+    accessiblePages: {
+      type: [String],
+      default: [],
     },
     ipAddress: {
       type: String, // Used for Anti-Circular Sponsoring and Fraud Detection
