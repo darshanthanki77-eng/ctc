@@ -691,17 +691,7 @@ export default function Products() {
                       }}>{row.value}</span>
                     </div>
                   ))}
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    paddingTop: '10px', marginTop: '4px',
-                    borderTop: '1px dashed #E2E8F0',
-                    fontSize: '12.5px',
-                  }}>
-                    <span style={{ color: '#475569' }}>Your USDT Balance</span>
-                    <span style={{ fontWeight: 700, color: balance >= Number(investmentAmount) ? '#22c55e' : '#ef4444' }}>
-                      ${balance.toFixed(2)} USDT
-                    </span>
-                  </div>
+
                 </div>
 
                 {/* Payment Method */}
@@ -1031,7 +1021,7 @@ export default function Products() {
                   </button>
                   {paymentMethod === 'metamask' ? (
                     <button
-                      disabled={!!amountError || !investmentAmount || isProcessing || balance < Number(investmentAmount)}
+                      disabled={!!amountError || !investmentAmount || isProcessing}
                       onClick={connectWalletAndPay}
                       className="w-full sm:w-auto justify-center"
                       style={{
@@ -1042,27 +1032,27 @@ export default function Products() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        cursor: amountError || !investmentAmount || isProcessing || balance < Number(investmentAmount) ? 'not-allowed' : 'pointer',
+                        cursor: amountError || !investmentAmount || isProcessing ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s',
                         border: 'none',
-                        background: amountError || !investmentAmount || isProcessing || balance < Number(investmentAmount)
+                        background: amountError || !investmentAmount || isProcessing
                           ? '#E2E8F0'
                           : 'linear-gradient(135deg, #a020f0 0%, #f310fd 100%)',
-                        color: amountError || !investmentAmount || isProcessing || balance < Number(investmentAmount)
+                        color: amountError || !investmentAmount || isProcessing
                           ? '#94A3B8'
                           : '#ffffff',
-                        boxShadow: amountError || !investmentAmount || isProcessing || balance < Number(investmentAmount)
+                        boxShadow: amountError || !investmentAmount || isProcessing
                           ? 'none'
                           : '0 4px 16px rgba(243,16,253,0.3)',
                       }}
                       onMouseEnter={e => {
-                        if (!(amountError || !investmentAmount || isProcessing || balance < Number(investmentAmount))) {
+                        if (!(amountError || !investmentAmount || isProcessing)) {
                           e.currentTarget.style.transform = 'translateY(-1px)';
                           e.currentTarget.style.boxShadow = '0 6px 20px rgba(243,16,253,0.45)';
                         }
                       }}
                       onMouseLeave={e => {
-                        if (!(amountError || !investmentAmount || isProcessing || balance < Number(investmentAmount))) {
+                        if (!(amountError || !investmentAmount || isProcessing)) {
                           e.currentTarget.style.transform = 'translateY(0)';
                           e.currentTarget.style.boxShadow = '0 4px 16px rgba(243,16,253,0.3)';
                         }
@@ -1072,7 +1062,7 @@ export default function Products() {
                     </button>
                   ) : (
                     <button
-                      disabled={!!amountError || !investmentAmount || !txHash || isProcessing || balance < Number(investmentAmount)}
+                      disabled={!!amountError || !investmentAmount || !txHash || isProcessing}
                       onClick={submitManualPurchase}
                       className="w-full sm:w-auto justify-center"
                       style={{
@@ -1083,27 +1073,27 @@ export default function Products() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        cursor: amountError || !investmentAmount || !txHash || isProcessing || balance < Number(investmentAmount) ? 'not-allowed' : 'pointer',
+                        cursor: amountError || !investmentAmount || !txHash || isProcessing ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s',
                         border: 'none',
-                        background: amountError || !investmentAmount || !txHash || isProcessing || balance < Number(investmentAmount)
+                        background: amountError || !investmentAmount || !txHash || isProcessing
                           ? '#E2E8F0'
                           : 'linear-gradient(135deg, #a020f0 0%, #f310fd 100%)',
-                        color: amountError || !investmentAmount || !txHash || isProcessing || balance < Number(investmentAmount)
+                        color: amountError || !investmentAmount || !txHash || isProcessing
                           ? '#94A3B8'
                           : '#ffffff',
-                        boxShadow: amountError || !investmentAmount || !txHash || isProcessing || balance < Number(investmentAmount)
+                        boxShadow: amountError || !investmentAmount || !txHash || isProcessing
                           ? 'none'
                           : '0 4px 16px rgba(243,16,253,0.3)',
                       }}
                       onMouseEnter={e => {
-                        if (!(amountError || !investmentAmount || !txHash || isProcessing || balance < Number(investmentAmount))) {
+                        if (!(amountError || !investmentAmount || !txHash || isProcessing)) {
                           e.currentTarget.style.transform = 'translateY(-1px)';
                           e.currentTarget.style.boxShadow = '0 6px 20px rgba(243,16,253,0.45)';
                         }
                       }}
                       onMouseLeave={e => {
-                        if (!(amountError || !investmentAmount || !txHash || isProcessing || balance < Number(investmentAmount))) {
+                        if (!(amountError || !investmentAmount || !txHash || isProcessing)) {
                           e.currentTarget.style.transform = 'translateY(0)';
                           e.currentTarget.style.boxShadow = '0 4px 16px rgba(243,16,253,0.3)';
                         }
