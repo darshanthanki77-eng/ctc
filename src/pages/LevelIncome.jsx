@@ -141,11 +141,8 @@ export default function LevelIncome() {
             {levelsData.map((row) => {
               const cfg = STATUS[row.status] || STATUS.Locked;
               const Icon = cfg.icon;
-
               return (
-                <div key={row.lvl} style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '12px 14px', marginBottom: 6,
+                <div key={row.lvl} className="level-income-row" style={{
                   background: row.status === 'Qualified'
                     ? 'rgba(34,197,94,0.05)'
                     : row.status === 'Locked'
@@ -153,28 +150,24 @@ export default function LevelIncome() {
                     : 'rgba(245,158,11,0.04)',
                   border: `1px solid ${cfg.color}20`,
                   borderLeft: `3px solid ${cfg.color}`,
-                  borderRadius: 12,
                   opacity: row.status === 'Locked' ? 0.55 : 1,
-                  transition: 'all 0.2s ease',
                 }}>
                   {/* Level badge */}
-                  <div style={{
-                    width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                  <div className="level-income-badge" style={{
                     background: `${cfg.color}15`, border: `1.5px solid ${cfg.color}40`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 800, color: cfg.color,
+                    color: cfg.color,
                   }}>
-                    {row.lvl}
+                    L{row.lvl}
                   </div>
 
                   {/* Rate + match */}
-                  <div style={{ width: 48, flexShrink: 0 }}>
+                  <div className="level-income-rate">
                     <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--near-black)' }}>{row.rate}</div>
                     <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>match</div>
                   </div>
 
                   {/* Progress bar + reqs */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="level-income-progress">
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--muted)', marginBottom: 5 }}>
                       <span>Self: ${row.selfReq.toLocaleString()}</span>
                       <span>Team: ${row.teamReq.toLocaleString()}</span>
@@ -189,14 +182,14 @@ export default function LevelIncome() {
                   </div>
 
                   {/* Earned */}
-                  <div style={{ width: 70, textAlign: 'right', flexShrink: 0 }}>
+                  <div className="level-income-earned">
                     <div style={{ fontSize: 14, fontWeight: 700, color: row.earned > 0 ? 'var(--green)' : 'var(--muted)', fontFamily: 'monospace' }}>
                       {row.earned > 0 ? `+$${row.earned.toFixed(2)}` : '—'}
                     </div>
                   </div>
 
                   {/* Status badge */}
-                  <div style={{ flexShrink: 0 }}>
+                  <div className="level-income-status">
                     <span className={`badge ${cfg.badge}`} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Icon size={10} />
                       {row.status}
