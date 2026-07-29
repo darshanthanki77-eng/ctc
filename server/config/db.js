@@ -49,7 +49,6 @@ const connectDB = async () => {
     // Auto-backfill and sync availableBalance with total earnings minus approved withdrawals for all users
     const User = require('../models/User');
     const Withdrawal = require('../models/Withdrawal');
-    const UserPackage = require('../models/UserPackage');
     const usersToSync = await User.find();
     console.log(`[DB] Syncing availableBalance for ${usersToSync.length} users...`);
     for (let u of usersToSync) {
