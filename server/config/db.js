@@ -55,20 +55,25 @@ const connectDB = async () => {
       // Find all completed/expired staked packages to add back their released principals
       const userPackages = await UserPackage.find({ user: u._id });
       let completedStakedPrincipal = 0;
+      let activeStakedROI = 0;
       for (let p of userPackages) {
         const isStakedPkg = p.isStaked || p.stakingEnabled;
-        if (isStakedPkg && (p.status === 'completed' || p.status === 'expired')) {
-          completedStakedPrincipal += (p.amount || 0);
+        if (isStakedPkg) {
+          if (p.status === 'completed' || p.status === 'expired') {
+            completedStakedPrincipal += (p.amount || 0);
+          } else if (p.status === 'active') {
+            activeStakedROI += Math.max(0, (p.compoundingBalance || 0) - (p.amount || 0));
+          }
         }
       }
 
       const withdrawals = await Withdrawal.find({ user: u._id, status: { $ne: 'rejected' } });
       const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0);
       
-      const expectedBalance = (u.miningIncome || 0) + (u.referralIncome || 0) + (u.levelIncome || 0) + (u.promotionalIncome || 0) + completedStakedPrincipal - (u.lockedStakingIncome || 0) - totalWithdrawn;
+      const expectedBalance = (u.miningIncome || 0) + (u.referralIncome || 0) + (u.levelIncome || 0) + (u.promotionalIncome || 0) + completedStakedPrincipal - activeStakedROI - (u.lockedStakingIncome || 0) - totalWithdrawn;
       
       if (Math.abs((u.availableBalance || 0) - expectedBalance) > 0.01) {
-        console.log(`[DB] Syncing balance for User ${u.userId}: current=${u.availableBalance}, expected=${expectedBalance}, locked=${u.lockedStakingIncome || 0}`);
+        console.log(`[DB] Syncing balance for User ${u.userId}: current=${u.availableBalance}, expected=${expectedBalance}, locked=${(u.lockedStakingIncome || 0) + activeStakedROI}`);
         u.availableBalance = expectedBalance;
         await u.save();
       }
