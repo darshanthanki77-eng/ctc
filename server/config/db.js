@@ -49,16 +49,27 @@ const connectDB = async () => {
     // Auto-backfill and sync availableBalance with total earnings minus approved withdrawals for all users
     const User = require('../models/User');
     const Withdrawal = require('../models/Withdrawal');
+    const UserPackage = require('../models/UserPackage');
     const usersToSync = await User.find();
     console.log(`[DB] Syncing availableBalance for ${usersToSync.length} users...`);
     for (let u of usersToSync) {
-      const withdrawals = await Withdrawal.find({ user: u._id, status: 'approved' });
+      // Find all completed/expired staked packages to add back their released principals
+      const userPackages = await UserPackage.find({ user: u._id });
+      let completedStakedPrincipal = 0;
+      for (let p of userPackages) {
+        const isStakedPkg = p.isStaked || p.stakingEnabled;
+        if (isStakedPkg && (p.status === 'completed' || p.status === 'expired')) {
+          completedStakedPrincipal += (p.amount || 0);
+        }
+      }
+
+      const withdrawals = await Withdrawal.find({ user: u._id, status: { $ne: 'rejected' } });
       const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0);
       
-      const expectedBalance = (u.miningIncome || 0) + (u.referralIncome || 0) + (u.levelIncome || 0) + (u.promotionalIncome || 0) - totalWithdrawn;
+      const expectedBalance = (u.miningIncome || 0) + (u.referralIncome || 0) + (u.levelIncome || 0) + (u.promotionalIncome || 0) + completedStakedPrincipal - (u.lockedStakingIncome || 0) - totalWithdrawn;
       
       if (Math.abs((u.availableBalance || 0) - expectedBalance) > 0.01) {
-        console.log(`[DB] Syncing balance for User ${u.userId}: current=${u.availableBalance}, expected=${expectedBalance}`);
+        console.log(`[DB] Syncing balance for User ${u.userId}: current=${u.availableBalance}, expected=${expectedBalance}, locked=${u.lockedStakingIncome || 0}`);
         u.availableBalance = expectedBalance;
         await u.save();
       }

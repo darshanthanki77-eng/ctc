@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const ReferralIncome = require('../models/ReferralIncome');
+const UserPackage = require('../models/UserPackage');
 
 const distributeDirectReferral = async (sponsorId, packageAmount, fromUserId, fromUserObjId) => {
   try {
@@ -23,9 +24,23 @@ const distributeDirectReferral = async (sponsorId, packageAmount, fromUserId, fr
       level: 1
     });
 
+    const activeStakedPkg = await UserPackage.findOne({
+      user: sponsor._id,
+      status: 'active',
+      $or: [
+        { isStaked: true },
+        { stakingEnabled: true }
+      ],
+      stakingEndDate: { $gt: new Date() }
+    });
+
     sponsor.referralIncome += income;
     sponsor.totalEarning += income;
-    sponsor.availableBalance += income;
+    if (activeStakedPkg) {
+      sponsor.lockedStakingIncome = (sponsor.lockedStakingIncome || 0) + income;
+    } else {
+      sponsor.availableBalance += income;
+    }
     await sponsor.save();
 
   } catch (error) {

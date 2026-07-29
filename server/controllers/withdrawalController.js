@@ -131,26 +131,7 @@ const requestWithdrawal = async (req, res, next) => {
     let userPkg = null;
 
     if (type === 'principal') {
-      if (user.principalWithdrawalDisabled) {
-        return res.status(403).json({ message: 'Principal withdrawal is currently disabled for your account by the administrator.' });
-      }
-
-      if (!userPackageId) {
-        return res.status(400).json({ message: 'Package ID required for principal withdrawal' });
-      }
-      const UserPackage = require('../models/UserPackage');
-      userPkg = await UserPackage.findOne({ _id: userPackageId, user: user._id, status: 'active' });
-      
-      if (!userPkg) {
-        return res.status(400).json({ message: 'Active package not found' });
-      }
-
-      const isStakingActive = userPkg.stakingEnabled || (userPkg.isStaked && (!userPkg.stakingEndDate || new Date(userPkg.stakingEndDate) > new Date()));
-      if (isStakingActive) {
-        return res.status(400).json({ message: 'This package is currently staked and locked for withdrawals.' });
-      }
-
-      targetAmount = userPkg.amount;
+      return res.status(400).json({ message: 'Emergency principal release (SOS withdraw) has been disabled.' });
     }
 
     if (type === 'profit') {

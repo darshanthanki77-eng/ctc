@@ -187,7 +187,22 @@ const claimRankBonus = async (req, res, next) => {
     user.claimedRankBonuses.push(rank);
 
     // Credit balance
-    user.availableBalance += bonusAmount;
+    const UserPackage = require('../models/UserPackage');
+    const activeStakedPkg = await UserPackage.findOne({
+      user: user._id,
+      status: 'active',
+      $or: [
+        { isStaked: true },
+        { stakingEnabled: true }
+      ],
+      stakingEndDate: { $gt: new Date() }
+    });
+
+    if (activeStakedPkg) {
+      user.lockedStakingIncome = (user.lockedStakingIncome || 0) + bonusAmount;
+    } else {
+      user.availableBalance += bonusAmount;
+    }
     user.totalEarning += bonusAmount;
     user.promotionalIncome += bonusAmount;
 

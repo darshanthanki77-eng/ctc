@@ -114,15 +114,35 @@ const runMiningCronCycle = async (force = false) => {
         if (u) {
           expiredPkg.status = 'completed';
           if (expiredPkg.isStaked) {
-            // Release compoundingBalance to availableBalance
-            u.availableBalance = round6(u.availableBalance + expiredPkg.compoundingBalance);
+            // Check if there are any other active staked packages remaining
+            const otherActiveStaked = await UserPackage.findOne({
+              user: u._id,
+              _id: { $ne: expiredPkg._id },
+              status: 'active',
+              $or: [
+                { isStaked: true },
+                { stakingEnabled: true }
+              ],
+              stakingEndDate: { $gt: new Date() }
+            });
+
+            let releaseAmount = expiredPkg.compoundingBalance;
+            if (!otherActiveStaked) {
+              // No other active staked package. Release lockedStakingIncome as well!
+              const lockedAmt = u.lockedStakingIncome || 0;
+              releaseAmount += lockedAmt;
+              u.lockedStakingIncome = 0;
+              console.log(`[CRON] Releasing lockedStakingIncome of ${lockedAmt} to user ${u.userId}`);
+            }
+
+            u.availableBalance = round6(u.availableBalance + releaseAmount);
             await u.save();
 
             await Transaction.create({
               userId: u.userId,
               user: u._id,
               type: 'release',
-              amount: expiredPkg.compoundingBalance,
+              amount: releaseAmount,
               status: 'success'
             });
 
@@ -280,7 +300,7 @@ const runMiningCronCycle = async (force = false) => {
       user.miningIncome = round6(user.miningIncome + profitAmount);
       user.totalEarning = round6(user.totalEarning + profitAmount); // 100% of profit counts towards the cap!
       
-      if (withdrawableAmount > 0) {
+      if (withdrawableAmount > 0 && !isStakingActive) {
         user.availableBalance = round6(user.availableBalance + withdrawableAmount); // 100% is withdrawable instantly
       }
  

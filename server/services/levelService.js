@@ -108,8 +108,22 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
           sponsorUser.levelIncome += totalIncome;
           sponsorUser.totalEarning += totalIncome;
 
-          // Add full level income to availableBalance
-          sponsorUser.availableBalance += payoutAmount;
+          // If sponsor has active staked package, redirect level income to lockedStakingIncome
+          const activeStakedPkg = await UserPackage.findOne({
+            user: sponsorUser._id,
+            status: 'active',
+            $or: [
+              { isStaked: true },
+              { stakingEnabled: true }
+            ],
+            stakingEndDate: { $gt: new Date() }
+          });
+
+          if (activeStakedPkg) {
+            sponsorUser.lockedStakingIncome = (sponsorUser.lockedStakingIncome || 0) + totalIncome;
+          } else {
+            sponsorUser.availableBalance += payoutAmount;
+          }
 
           if (capHit || sponsorUser.totalEarning >= sponsorUser.totalInvestment * 4) {
             sponsorUser.isActive = false;

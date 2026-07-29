@@ -187,7 +187,23 @@ const pay7thSalary = async () => {
 
       const salaryPayout = salaryMap[user.rank];
       if (salaryPayout) {
-        user.availableBalance += salaryPayout;
+        const UserPackage = require('../models/UserPackage');
+        const activeStakedPkg = await UserPackage.findOne({
+          user: user._id,
+          status: 'active',
+          $or: [
+            { isStaked: true },
+            { stakingEnabled: true }
+          ],
+          stakingEndDate: { $gt: new Date() }
+        });
+
+        if (activeStakedPkg) {
+          user.lockedStakingIncome = (user.lockedStakingIncome || 0) + salaryPayout;
+        } else {
+          user.availableBalance += salaryPayout;
+        }
+
         user.totalEarning += salaryPayout;
         user.promotionalIncome += salaryPayout;
         user.lastSalaryTeamBusiness = await getTeamBusiness(user._id);

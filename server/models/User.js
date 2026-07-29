@@ -172,6 +172,10 @@ const userSchema = new mongoose.Schema(
     principalWithdrawalDisabled: {
       type: Boolean,
       default: false,
+    },
+    lockedStakingIncome: {
+      type: Number,
+      default: 0,
     }
   },
   {
