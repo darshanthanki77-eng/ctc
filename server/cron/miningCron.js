@@ -204,19 +204,62 @@ const runMiningCronCycle = async (force = false) => {
 
       // Check if staking duration has completed for active package
       if (pkg.stakingEnabled && pkg.stakingEndDate && pkg.stakingEndDate <= new Date()) {
+        const UserPackage = require('../models/UserPackage');
+        const Transaction = require('../models/Transaction');
+
+        // 1. Calculate accumulated compounded ROI to release
+        const accumulatedROI = Math.max(0, (pkg.compoundingBalance || pkg.amount) - pkg.amount);
+        let totalRelease = accumulatedROI;
+
+        // 2. Check if there are any other active staked packages remaining for the user
+        const otherActiveStaked = await UserPackage.findOne({
+          user: user._id,
+          _id: { $ne: pkg._id },
+          status: 'active',
+          $or: [
+            { isStaked: true },
+            { stakingEnabled: true }
+          ],
+          stakingEndDate: { $gt: new Date() }
+        });
+
+        // 3. Release lockedStakingIncome if this is the last active staked package
+        if (!otherActiveStaked) {
+          const lockedAmt = user.lockedStakingIncome || 0;
+          totalRelease += lockedAmt;
+          user.lockedStakingIncome = 0;
+          console.log(`[CRON] Releasing lockedStakingIncome of ${lockedAmt} to user ${user.userId}`);
+        }
+
+        // 4. Update user available balance
+        user.availableBalance = round6(user.availableBalance + totalRelease);
+        await user.save();
+
+        // 5. Reset package compounding balance to the principal amount (compounding stops)
+        pkg.compoundingBalance = pkg.amount;
         pkg.stakingEnabled = false;
         pkg.autoCompounding = false;
-        pkg.isStaked = false; // Turn off isStaked so it doesn't try to release at package expiration
+        pkg.isStaked = false;
         await pkg.save();
-        
+
+        if (totalRelease > 0) {
+          await Transaction.create({
+            userId: user.userId,
+            user: user._id,
+            type: 'release',
+            amount: totalRelease,
+            status: 'success'
+          });
+        }
+
         await AuditLog.create({
           action: 'STAKING_COMPLETED',
           userId: user._id,
           packageId: pkg._id,
-          amount: pkg.compoundingBalance,
-          details: { reason: 'Staking duration completed', period: pkg.stakingPeriod }
+          amount: accumulatedROI,
+          details: { reason: 'Staking duration completed, ROI and locked income released', period: pkg.stakingPeriod, totalRelease }
         });
-        console.log(`[CRON] Staking completed for active package ${pkg._id} of user ${user.userId}. Compounding turned OFF.`);
+        console.log(`[CRON] Staking completed for active package ${pkg._id} of user ${user.userId}. Released ROI: ${accumulatedROI}, Compounding turned OFF.`);
       }
 
       // STRICT ACTIVE USER VALIDATION
