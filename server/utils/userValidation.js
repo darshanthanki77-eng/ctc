@@ -12,9 +12,14 @@ const isStrictlyActiveUser = async (user, activePackage = null) => {
   // 1. Account not blocked/suspended
   if (user.isBlocked || user.isActive === false) return false;
 
+  const getMultiplier = (u, p) => {
+    if (p.isZeroPin || u.pins === 0) return 1;
+    return (u.totalTeam > 0) ? 4 : 2;
+  };
+
   // 2. If a specific package is provided, evaluate that package
   if (activePackage) {
-    const multiplier = activePackage.isZeroPin ? 1 : 4;
+    const multiplier = getMultiplier(user, activePackage);
     
     // Global cap check using this package's multiplier
     if (user.totalInvestment && user.totalInvestment > 0) {
@@ -40,7 +45,7 @@ const isStrictlyActiveUser = async (user, activePackage = null) => {
   // Check if user has at least one valid active package
   let hasValidPackage = false;
   for (const pkg of activePkgs) {
-    const multiplier = pkg.isZeroPin ? 1 : 4;
+    const multiplier = getMultiplier(user, pkg);
     
     // Check global cap
     if (user.totalInvestment && user.totalInvestment > 0) {

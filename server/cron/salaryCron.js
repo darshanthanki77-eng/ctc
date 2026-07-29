@@ -39,11 +39,12 @@ const runSalaryCron = async () => {
     const pendingBonuses = [];
 
     for (let user of eligibleUsers) {
-      // Enforce 4x Earning Cap before processing
-      if (user.totalEarning >= user.totalInvestment * 4) {
+      // Enforce dynamic Earning Cap before processing
+      const multiplier = (user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2);
+      if (user.totalEarning >= user.totalInvestment * multiplier) {
         user.isActive = false;
         await user.save();
-        console.log(`[CAP] User ID: ${user.userId} (${user.fullName}) deactivated due to 4x earning cap (Earned: $${user.totalEarning}, Invested: $${user.totalInvestment})`);
+        console.log(`[CAP] User ID: ${user.userId} (${user.fullName}) deactivated due to ${multiplier}x earning cap (Earned: $${user.totalEarning}, Invested: $${user.totalInvestment})`);
         capped.push({ userId: user.userId, fullName: user.fullName, totalEarning: user.totalEarning, totalInvestment: user.totalInvestment });
         continue;
       }
@@ -176,12 +177,13 @@ const pay7thSalary = async () => {
         continue;
       }
 
-      // Check 4x Earning Cap before payout
-      if (user.totalEarning >= user.totalInvestment * 4) {
+      // Check dynamic Earning Cap before payout
+      const multiplier = (user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2);
+      if (user.totalEarning >= user.totalInvestment * multiplier) {
         user.isActive = false;
         user.qualifiedFor7thSalary = false;
         await user.save();
-        console.log(`[CAP] User ID: ${user.userId} deactivated due to 4x cap before 7th salary payout.`);
+        console.log(`[CAP] User ID: ${user.userId} deactivated due to ${multiplier}x cap before 7th salary payout.`);
         continue;
       }
 

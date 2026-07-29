@@ -221,7 +221,7 @@ const runMiningCronCycle = async (force = false) => {
 
       // STRICT ACTIVE USER VALIDATION
       const isActive = await isStrictlyActiveUser(user, pkg);
-      const maxCapMultiplier = pkg.isZeroPin ? 1 : 4;
+      const maxCapMultiplier = (pkg.isZeroPin || user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2);
       if (!isActive) {
         // Double ensure flags are flipped if they reached cap mathematically but flags aren't updated yet
         if (user && user.totalEarning >= user.totalInvestment * maxCapMultiplier && user.isActive) {

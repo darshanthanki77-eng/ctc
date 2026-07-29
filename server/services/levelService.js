@@ -70,7 +70,8 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
         }
 
         // PRECISION OVERSHOOT PROTECTION FOR LEVEL INCOME
-        const sponsorRemainingCap = (sponsorUser.totalInvestment * 4) - sponsorUser.totalEarning;
+        const sponsorMultiplier = (sponsorUser.pins === 0) ? 1 : ((sponsorUser.totalTeam > 0) ? 4 : 2);
+        const sponsorRemainingCap = (sponsorUser.totalInvestment * sponsorMultiplier) - sponsorUser.totalEarning;
 
         if (sponsorRemainingCap <= 0) {
           sponsorUser.isActive = false;
@@ -125,13 +126,14 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
             sponsorUser.availableBalance += payoutAmount;
           }
 
-          if (capHit || sponsorUser.totalEarning >= sponsorUser.totalInvestment * 4) {
+          const finalSponsorMultiplier = (sponsorUser.pins === 0) ? 1 : ((sponsorUser.totalTeam > 0) ? 4 : 2);
+          if (capHit || sponsorUser.totalEarning >= sponsorUser.totalInvestment * finalSponsorMultiplier) {
             sponsorUser.isActive = false;
 
             await AuditLog.create({
               action: 'CAP_COMPLETED',
               userId: sponsorUser._id,
-              details: { reason: '4x cap reached EXACTLY after level income addition' }
+              details: { reason: `${finalSponsorMultiplier}x cap reached EXACTLY after level income addition` }
             });
           }
 

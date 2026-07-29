@@ -175,11 +175,12 @@ const claimRankBonus = async (req, res, next) => {
       return res.status(400).json({ message: `No bonus config found for Rank ${rank}.` });
     }
 
-    // Enforce 4x cap before payout
-    if (user.totalEarning >= user.totalInvestment * 4) {
+    // Enforce dynamic cap before payout
+    const multiplier = (user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2);
+    if (user.totalEarning >= user.totalInvestment * multiplier) {
       user.isActive = false;
       await user.save();
-      return res.status(400).json({ message: 'Cannot claim bonus: 4x earning cap reached. User account deactivated.' });
+      return res.status(400).json({ message: `Cannot claim bonus: ${multiplier}x earning cap reached. User account deactivated.` });
     }
 
     // Move from unclaimed to claimed
