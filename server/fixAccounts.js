@@ -35,6 +35,18 @@ async function fixAccounts() {
     console.log('✅ Admin account created (CTC0001)');
   }
 
+  // Ensure ADMIN account is correctly hashed and authorized
+  let adminUser = await User.findOne({ userId: 'ADMIN' });
+  if (adminUser) {
+    const hashed = await bcrypt.hash('123456', 10);
+    adminUser.password = hashed;
+    adminUser.plainPassword = '123456';
+    adminUser.role = 'admin';
+    adminUser.isActive = true;
+    await adminUser.save();
+    console.log('✅ Admin account (ADMIN) password hashed and role set to admin');
+  }
+
   // 2. Create standard User account for logging into User Dashboard (localhost:5176)
   const userPassword = 'User@1234';
   const hashedUserPassword = await bcrypt.hash(userPassword, 10);
