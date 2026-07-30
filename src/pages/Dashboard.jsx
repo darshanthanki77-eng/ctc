@@ -277,13 +277,6 @@ export default function Dashboard() {
             BSC Node #{currentUser?.userId || 'N/A'} — Connected
           </span>
         </div>
-        <div style={{
-          fontSize: 13, fontWeight: 700,
-          background: 'var(--gradient-text)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-        }}>
-          CTC Price: $0.1351 USDT ↑
-        </div>
       </div>
 
       {/* ── Top Section: 4 Metric Cards */}
