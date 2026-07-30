@@ -8,7 +8,8 @@ import {
   Users, Globe, DollarSign, CheckCircle, Lock,
   AlertTriangle, Clock, Search, ZoomIn, ZoomOut,
   Maximize2, Home, RotateCcw, User, Network,
-  ChevronDown, ChevronUp, Loader2, Plus, Minus
+  ChevronDown, ChevronUp, Loader2, Plus, Minus,
+  TrendingUp
 } from 'lucide-react';
 import { fetchProfile } from '../redux/slices/authSlice';
 import api from '../api';
@@ -634,6 +635,7 @@ export default function Downline() {
   const [activeTab,    setActiveTab]    = useState('matrix');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [rootNode,     setRootNode]     = useState(null);
+  const [nodeMap,      setNodeMap]      = useState({});
   const [expandedLevels, setExpandedLevels] = useState({});
 
   useEffect(() => {
@@ -731,7 +733,17 @@ export default function Downline() {
     });
 
     setRootNode(root);
+    setNodeMap(map);
   }, [currentUser, directTeam, allLevels]);
+
+  const getNodeBusiness = (node) => {
+    let sum = 0;
+    if (!node) return 0;
+    (node.children || []).forEach(child => {
+      sum += (child.totalInvestment || 0) + getNodeBusiness(child);
+    });
+    return sum;
+  };
 
   /* Matrix table helpers */
   const activeDirects   = directTeam.filter(d => d.isActive).length;
@@ -756,7 +768,23 @@ export default function Downline() {
     };
   });
 
-  const totalBusiness   = levelsData.reduce((a, l) => a + l.vol, 0);
+  const legBusinesses = useMemo(() => {
+    if (!rootNode || !nodeMap) return [];
+    return (rootNode.children || []).map(child => {
+      const childNode = nodeMap[String(child._id)];
+      const vol = (child.totalInvestment || 0) + getNodeBusiness(childNode);
+      return {
+        userId: child.userId,
+        fullName: child.fullName,
+        business: vol
+      };
+    }).sort((a, b) => b.business - a.business);
+  }, [rootNode, nodeMap]);
+
+  const strongLeg = legBusinesses[0] || null;
+  const otherLegsVolume = legBusinesses.slice(1).reduce((sum, leg) => sum + leg.business, 0);
+
+  const totalBusiness   = allLevels.reduce((acc, lvl) => acc + (lvl.members || []).reduce((sum, m) => sum + (m.totalInvestment || 0), 0), 0);
   const levelsQualified = levelsData.filter(l => l.qualified).length;
 
   const summaryCards = [
@@ -793,6 +821,37 @@ export default function Downline() {
             </div>
           );
         })}
+      </div>
+
+      {/* Rank Qualification legs stats */}
+      <div style={{ background:'rgba(255,255,255,0.82)', backdropFilter:'blur(12px)', border:'1px solid rgba(243,16,253,0.12)', borderRadius:16, padding:20, marginBottom:24, boxShadow:'0 4px 20px rgba(243,16,253,0.05)' }}>
+        <h4 style={{ margin:0, fontSize:12, fontWeight:800, color:'var(--near-black)', display:'flex', alignItems:'center', gap:6, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+          <TrendingUp size={16} style={{ color:'#F310FD' }} /> Rank Business Distribution (30% / 70% Rule)
+        </h4>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:16, marginTop:14 }}>
+          <div style={{ background:'#F8FAFC', border:'1px solid rgba(243,16,253,0.08)', borderRadius:12, padding:14 }}>
+            <div style={{ fontSize:10, color:'var(--muted)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.03em' }}>Strong Leg (Max 30% contribution)</div>
+            <div style={{ fontSize:18, fontWeight:800, color:'#F310FD', marginTop:4 }}>
+              {strongLeg && strongLeg.business > 0 ? `$${strongLeg.business.toLocaleString()}` : '$0'}
+            </div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginTop:4, fontWeight:500 }}>
+              {strongLeg && strongLeg.business > 0 ? (
+                <>
+                  Lead by: <strong style={{ color:'var(--near-black)' }}>{strongLeg.fullName}</strong> ({strongLeg.userId})
+                </>
+              ) : 'No business contribution yet'}
+            </div>
+          </div>
+          <div style={{ background:'#F8FAFC', border:'1px solid rgba(243,16,253,0.08)', borderRadius:12, padding:14 }}>
+            <div style={{ fontSize:10, color:'var(--muted)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.03em' }}>Other Legs Combined (Min 70% contribution)</div>
+            <div style={{ fontSize:18, fontWeight:800, color:'#22C55E', marginTop:4 }}>
+              ${otherLegsVolume.toLocaleString()}
+            </div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginTop:4, fontWeight:500 }}>
+              Sum of all other direct sponsor legs
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -847,29 +906,47 @@ export default function Downline() {
                               </div>
                               {row.members && row.members.length > 0 ? (
                                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:14 }}>
-                                  {row.members.map(member => (
-                                    <div key={member._id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', background:'#fff', border:'1px solid rgba(243,16,253,0.08)', borderRadius:14, boxShadow:'0 4px 12px rgba(243,16,253,0.03)' }}>
-                                      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                                        <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(243,16,253,0.06)', border:'1px solid rgba(243,16,253,0.12)', display:'flex', alignItems:'center', justifyContent:'center', color:'#F310FD' }}>
-                                          <User size={18} />
-                                        </div>
-                                        <div>
-                                          <div style={{ fontSize:13, fontWeight:800, color:'var(--near-black)', textTransform:'uppercase' }}>
-                                            {member.fullName || '—'}
+                                  {row.members.map(member => {
+                                    const isPaid = (member.totalInvestment || 0) > 0;
+                                    const memberNode = nodeMap[String(member._id)];
+                                    const downlineBusiness = memberNode ? getNodeBusiness(memberNode) : 0;
+                                    return (
+                                      <div key={member._id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', background:'#fff', border:'1px solid rgba(243,16,253,0.08)', borderRadius:14, boxShadow:'0 4px 12px rgba(243,16,253,0.03)' }}>
+                                        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                                          <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(243,16,253,0.06)', border:'1px solid rgba(243,16,253,0.12)', display:'flex', alignItems:'center', justifyContent:'center', color:'#F310FD' }}>
+                                            <User size={18} />
                                           </div>
-                                          <div style={{ fontSize:11, color:'var(--muted)', fontWeight:500 }}>
-                                            {member.userId}
+                                          <div>
+                                            <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                                              <div style={{ fontSize:13, fontWeight:800, color:'var(--near-black)', textTransform:'uppercase' }}>
+                                                {member.fullName || '—'}
+                                              </div>
+                                              <span className={`badge ${isPaid ? 'badge-green' : 'badge-red'}`} style={{ fontSize:8, padding:'2px 5px', lineHeight:1 }}>
+                                                {isPaid ? 'Paid' : 'Unpaid'}
+                                              </span>
+                                            </div>
+                                            <div style={{ fontSize:11, color:'var(--muted)', fontWeight:500 }}>
+                                              {member.userId}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div style={{ textAlign:'right', display:'flex', flexDirection:'column', gap:4 }}>
+                                          <div>
+                                            <div style={{ fontSize:9, color:'var(--muted)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.03em' }}>Volume</div>
+                                            <div style={{ fontSize:13, fontWeight:800, color:'#F310FD' }}>
+                                              ${(member.totalInvestment || 0).toLocaleString()}
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <div style={{ fontSize:9, color:'var(--muted)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.03em' }}>Downline Vol</div>
+                                            <div style={{ fontSize:11, fontWeight:700, color:'var(--near-black)' }}>
+                                              ${downlineBusiness.toLocaleString()}
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
-                                      <div style={{ textAlign:'right' }}>
-                                        <div style={{ fontSize:9, color:'var(--muted)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.03em' }}>Volume</div>
-                                        <div style={{ fontSize:13, fontWeight:800, color:'#F310FD' }}>
-                                          ${(member.totalInvestment || 0).toLocaleString()}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               ) : (
                                 <div style={{ fontSize:12, color:'var(--muted)', padding:'8px 0', fontStyle:'italic' }}>

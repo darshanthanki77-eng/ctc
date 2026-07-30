@@ -24,7 +24,7 @@ const getTeam = async (req, res, next) => {
     let levels = [];
     let currentLevelMembers = directTeam;
     let currentLevel = 1;
-    const maxLevels = 30;
+    const maxLevels = 1000;
 
     while (currentLevelMembers.length > 0 && currentLevel <= maxLevels) {
       levels.push({
