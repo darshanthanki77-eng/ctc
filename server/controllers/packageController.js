@@ -36,7 +36,7 @@ const getAllPackages = async (req, res, next) => {
 
 const buyPackage = async (req, res, next) => {
   try {
-    const { packageId, amount, txHash, senderAddress, targetUserId } = req.body;
+    const { packageId, amount, txHash, senderAddress, targetUserId, useWalletBalance } = req.body;
 
     if (!senderAddress) {
       return res.status(400).json({ message: 'Sender wallet address is required for verification.' });
@@ -49,12 +49,14 @@ const buyPackage = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid amount for this package' });
     }
 
-    const usdtAmount = amount / 2;
-    const walletAmount = amount / 2;
+    const isSplit = useWalletBalance === true || useWalletBalance === 'true';
+    const usdtAmount = isSplit ? amount / 2 : amount;
+    const walletAmount = isSplit ? amount / 2 : 0;
 
     const buyer = await User.findById(req.user._id);
     if (!buyer) return res.status(404).json({ message: 'Buyer user not found' });
-    if (buyer.availableBalance < walletAmount) {
+    
+    if (isSplit && buyer.availableBalance < walletAmount) {
       return res.status(400).json({ message: 'Insufficient wallet balance for 50:50 top-up.' });
     }
 
@@ -75,7 +77,7 @@ const buyPackage = async (req, res, next) => {
       return res.status(400).json({ message: 'This transaction hash has already been used. Duplicate transactions are not allowed.' });
     }
 
-    // Verify 50% of the package amount
+    // Verify correct USDT amount (either 50% split or 100% full amount)
     const verification = await verifyTransaction(txHash, usdtAmount, senderAddress);
     if (!verification.status) {
       return res.status(400).json({ message: verification.message });
@@ -96,9 +98,11 @@ const buyPackage = async (req, res, next) => {
       return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $60,000.' });
     }
 
-    // Deduct wallet amount from buyer
-    buyer.availableBalance = Math.round((buyer.availableBalance - walletAmount) * 1000000) / 1000000;
-    await buyer.save();
+    // Deduct wallet amount from buyer if using split payment
+    if (isSplit) {
+      buyer.availableBalance = Math.round((buyer.availableBalance - walletAmount) * 1000000) / 1000000;
+      await buyer.save();
+    }
 
     const isBVEligible = true;
     const durationDays = pkg.validity;
@@ -132,20 +136,23 @@ const buyPackage = async (req, res, next) => {
       details: {
         txHash,
         walletAmountPaid: walletAmount,
+        useWalletBalance: isSplit,
         buyerId: buyer.userId,
         isUpgrade: false
       }
     });
 
-    // Create wallet payment deduction log under buyer
-    await Transaction.create({
-      userId: buyer.userId,
-      user: buyer._id,
-      type: 'withdrawal',
-      amount: walletAmount,
-      status: 'success',
-      txHash: `WALLET_TOPUP_${targetUser.userId}`
-    });
+    // Create wallet payment deduction log under buyer if split used
+    if (isSplit) {
+      await Transaction.create({
+        userId: buyer.userId,
+        user: buyer._id,
+        type: 'withdrawal',
+        amount: walletAmount,
+        status: 'success',
+        txHash: `WALLET_TOPUP_${targetUser.userId}`
+      });
+    }
 
     // Create deposit/activation log under targetUser
     await Transaction.create({
@@ -292,7 +299,7 @@ const startStaking = async (req, res, next) => {
 
 const buyPackageManual = async (req, res, next) => {
   try {
-    const { packageId, amount, txHash, networkType, senderAddress, targetUserId } = req.body;
+    const { packageId, amount, txHash, networkType, senderAddress, targetUserId, useWalletBalance } = req.body;
 
     if (!packageId || !amount || !txHash || !networkType) {
       return res.status(400).json({ message: 'Package ID, amount, transaction hash, and network type are required.' });
@@ -310,12 +317,14 @@ const buyPackageManual = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid amount for this package' });
     }
 
-    const usdtAmount = numericAmount / 2;
-    const walletAmount = numericAmount / 2;
+    const isSplit = useWalletBalance === true || useWalletBalance === 'true';
+    const usdtAmount = isSplit ? numericAmount / 2 : numericAmount;
+    const walletAmount = isSplit ? numericAmount / 2 : 0;
 
     const buyer = await User.findById(req.user._id);
     if (!buyer) return res.status(404).json({ message: 'Buyer user not found' });
-    if (buyer.availableBalance < walletAmount) {
+    
+    if (isSplit && buyer.availableBalance < walletAmount) {
       return res.status(400).json({ message: 'Insufficient wallet balance for 50:50 top-up.' });
     }
 
@@ -357,9 +366,11 @@ const buyPackageManual = async (req, res, next) => {
       return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $60,000.' });
     }
 
-    // Deduct wallet amount from buyer immediately to lock it
-    buyer.availableBalance = Math.round((buyer.availableBalance - walletAmount) * 1000000) / 1000000;
-    await buyer.save();
+    // Deduct wallet amount from buyer immediately to lock it if split payment is used
+    if (isSplit) {
+      buyer.availableBalance = Math.round((buyer.availableBalance - walletAmount) * 1000000) / 1000000;
+      await buyer.save();
+    }
 
     // Create Manual Package Buy Request with target user & locked wallet amount
     const manualRequest = await ManualPackageBuy.create({
@@ -377,7 +388,9 @@ const buyPackageManual = async (req, res, next) => {
     });
 
     res.status(200).json({
-      message: 'Your manual package purchase request (50:50) has been submitted successfully and is pending admin approval.',
+      message: isSplit
+        ? 'Your manual package purchase request (50:50 split) has been submitted successfully and is pending admin approval.'
+        : 'Your manual package purchase request (100% USDT) has been submitted successfully and is pending admin approval.',
       manualRequest
     });
   } catch (error) {

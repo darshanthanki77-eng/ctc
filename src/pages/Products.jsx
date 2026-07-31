@@ -43,6 +43,7 @@ export default function Products() {
   
   const [investmentAmount, setInvestmentAmount] = useState('');
   const [targetUserId, setTargetUserId] = useState('');
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
   const [amountError, setAmountError] = useState('');
   const [txHash, setTxHash] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -205,10 +206,11 @@ export default function Products() {
         provider.getBalance(userAddress)
       ]);
 
-      const splitWalletValue = Number(investmentAmount) / 2;
-      const splitUsdtValue = Number(investmentAmount) / 2;
+      const isSplit = useWalletBalance;
+      const splitWalletValue = isSplit ? Number(investmentAmount) / 2 : 0;
+      const splitUsdtValue = isSplit ? Number(investmentAmount) / 2 : Number(investmentAmount);
 
-      if (currentUser?.availableBalance < splitWalletValue) {
+      if (isSplit && currentUser?.availableBalance < splitWalletValue) {
         throw new Error(`Insufficient Available Wallet Balance. You need at least $${splitWalletValue} USDT in your available balance for the 50:50 payment.`);
       }
 
@@ -236,13 +238,15 @@ export default function Products() {
           amount: Number(investmentAmount),
           txHash: tx.hash,
           senderAddress: userAddress,
-          targetUserId: targetUserId || undefined
+          targetUserId: targetUserId || undefined,
+          useWalletBalance: useWalletBalance
         });
 
         toast.success(response.data.message || 'Package Activated Successfully!');
         dispatch(fetchProfile());
         setSelectedPackage(null);
         setTargetUserId('');
+        setUseWalletBalance(false);
       } else {
         throw new Error("Transaction failed on-chain");
       }
@@ -261,8 +265,9 @@ export default function Products() {
       return;
     }
 
-    const splitWalletValue = Number(investmentAmount) / 2;
-    if (currentUser?.availableBalance < splitWalletValue) {
+    const isSplit = useWalletBalance;
+    const splitWalletValue = isSplit ? Number(investmentAmount) / 2 : 0;
+    if (isSplit && currentUser?.availableBalance < splitWalletValue) {
       toast.error(`Insufficient Available Wallet Balance. You need at least $${splitWalletValue} USDT in your available balance for the 50:50 payment.`);
       return;
     }
@@ -275,7 +280,8 @@ export default function Products() {
         txHash,
         networkType,
         senderAddress,
-        targetUserId: targetUserId || undefined
+        targetUserId: targetUserId || undefined,
+        useWalletBalance: useWalletBalance
       });
 
       toast.success(response.data.message || 'Manual purchase request submitted successfully!');
@@ -283,6 +289,7 @@ export default function Products() {
       setTxHash('');
       setSenderAddress('');
       setTargetUserId('');
+      setUseWalletBalance(false);
     } catch (error) {
       console.error(error);
       const errorMsg = error.response?.data?.message || error.message || 'Failed to submit request. Please try again.';
@@ -781,6 +788,47 @@ export default function Products() {
                     </div>
                   </div>
 
+                  {/* Toggle Split Payment */}
+                  <div style={{
+                    background: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    marginBottom: '4px'
+                  }} onClick={() => setUseWalletBalance(!useWalletBalance)}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Use Wallet Balance (50:50 Split)</div>
+                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+                        Pay 50% from available balance (${(currentUser?.availableBalance || 0).toLocaleString()} USDT) & 50% via USDT
+                      </div>
+                    </div>
+                    <div style={{
+                      width: '40px',
+                      height: '22px',
+                      borderRadius: '100px',
+                      background: useWalletBalance ? '#F310FD' : '#E2E8F0',
+                      position: 'relative',
+                      transition: 'all 0.2s ease',
+                      padding: '2px'
+                    }}>
+                      <div style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: '#FFFFFF',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        position: 'absolute',
+                        left: useWalletBalance ? '20px' : '2px',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }} />
+                    </div>
+                  </div>
+
                   {/* Target User ID Input */}
                   <div>
                     <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Target User ID (Optional)</label>
@@ -842,7 +890,7 @@ export default function Products() {
                     )}
                   </div>
 
-                  {/* 50:50 Payment Breakdown */}
+                  {/* Payment Breakdown */}
                   {Number(investmentAmount) > 0 && (
                     <div style={{
                       background: 'rgba(243, 16, 253, 0.04)',
@@ -853,19 +901,26 @@ export default function Products() {
                       flexDirection: 'column',
                       gap: '8px'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                        <span style={{ color: '#64748B' }}>50% Wallet Balance:</span>
-                        <span style={{ color: '#0F172A', fontFamily: 'monospace' }}>${(Number(investmentAmount) / 2).toLocaleString()} USDT</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                        <span style={{ color: '#64748B' }}>50% USDT Payment:</span>
-                        <span style={{ color: '#F310FD', fontFamily: 'monospace' }}>${(Number(investmentAmount) / 2).toLocaleString()} USDT</span>
-                      </div>
-                      
-                      {/* Balance Check warning */}
-                      {currentUser?.availableBalance < (Number(investmentAmount) / 2) && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>
-                          <AlertCircle size={14} /> Insufficient Wallet Balance (${(currentUser?.availableBalance || 0).toLocaleString()} available)
+                      {useWalletBalance ? (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                            <span style={{ color: '#64748B' }}>50% Wallet Balance:</span>
+                            <span style={{ color: '#0F172A', fontFamily: 'monospace' }}>${(Number(investmentAmount) / 2).toLocaleString()} USDT</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                            <span style={{ color: '#64748B' }}>50% USDT Payment:</span>
+                            <span style={{ color: '#F310FD', fontFamily: 'monospace' }}>${(Number(investmentAmount) / 2).toLocaleString()} USDT</span>
+                          </div>
+                          {currentUser?.availableBalance < (Number(investmentAmount) / 2) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>
+                              <AlertCircle size={14} /> Insufficient Wallet Balance (${(currentUser?.availableBalance || 0).toLocaleString()} available)
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                          <span style={{ color: '#64748B' }}>100% USDT Payment:</span>
+                          <span style={{ color: '#F310FD', fontFamily: 'monospace' }}>${Number(investmentAmount).toLocaleString()} USDT</span>
                         </div>
                       )}
                     </div>
