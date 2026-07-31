@@ -354,18 +354,6 @@ const Withdrawal = () => {
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(0,0,0,0.03)', borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)', marginBottom: 5 }}>
-                  <span>Invoice Ref</span>
-                  <span style={{ fontFamily: 'monospace', color: 'var(--pink)' }}>REC-{Math.floor(9000 + Math.random() * 999)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)' }}>
-                  <span>Destination Wallet</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                    {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not connected'}
-                  </span>
-                </div>
-              </div>
 
               {[
                 { label: 'Gross Amount',         value: `$${grossAmount.toFixed(2)} USDT`,    color: 'var(--near-black)', badge: null },
