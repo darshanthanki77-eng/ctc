@@ -149,14 +149,6 @@ const generateToken = (id) => {
   });
 };
 
-module.exports = {
-  registerUser,
-  loginUser,
-  getMe,
-  forgotPassword,
-  resetPassword,
-};
-
 // @desc    Forgot Password - Send Email Link
 // @route   POST /api/auth/forgot-password
 // @access  Public
@@ -218,4 +210,12 @@ const resetPassword = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  getMe,
+  forgotPassword,
+  resetPassword,
 };
