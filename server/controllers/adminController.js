@@ -9,6 +9,7 @@ const UserPackage = require('../models/UserPackage');
 const ManualPackageBuy = require('../models/ManualPackageBuy');
 const CronState = require('../models/CronState');
 const ReferralIncome = require('../models/ReferralIncome');
+const LevelIncome = require('../models/LevelIncome');
 const MiningIncome = require('../models/MiningIncome');
 const { verifyWithdrawalTransaction } = require('../services/blockchainService');
 const bcrypt = require('bcryptjs');
@@ -233,8 +234,14 @@ const approveWithdrawal = async (req, res, next) => {
 
 const createPackage = async (req, res, next) => {
   try {
+    if (req.body.dailyProfitPercent !== undefined) {
+      req.body.dailyProfit = Number(req.body.dailyProfitPercent);
+    }
+    if (req.body.validity === undefined) {
+      req.body.validity = 36500; // Default to lifetime
+    }
     const pkg = await Package.create(req.body);
-    res.status(201).json({ message: 'Package created', pkg });
+    res.status(201).json({ message: 'Package created', pkg: { ...pkg.toObject(), dailyProfitPercent: pkg.dailyProfit } });
   } catch (error) {
     next(error);
   }
@@ -425,7 +432,11 @@ const getAllKYCs = async (req, res, next) => {
 const getAllPackages = async (req, res, next) => {
   try {
     const packages = await Package.find();
-    res.json(packages);
+    const formatted = packages.map(pkg => ({
+      ...pkg.toObject(),
+      dailyProfitPercent: pkg.dailyProfit
+    }));
+    res.json(formatted);
   } catch (error) {
     next(error);
   }
@@ -446,8 +457,11 @@ const getUserPackages = async (req, res, next) => {
 const updatePackage = async (req, res, next) => {
   try {
     const { id } = req.params;
+    if (req.body.dailyProfitPercent !== undefined) {
+      req.body.dailyProfit = Number(req.body.dailyProfitPercent);
+    }
     const pkg = await Package.findByIdAndUpdate(id, req.body, { new: true });
-    res.json({ message: 'Package updated', pkg });
+    res.json({ message: 'Package updated', pkg: pkg ? { ...pkg.toObject(), dailyProfitPercent: pkg.dailyProfit } : null });
   } catch (error) {
     next(error);
   }
@@ -673,6 +687,18 @@ const getAllTransactions = async (req, res, next) => {
   }
 };
 
+const getAllDownlineIds = async (parentUserId) => {
+  let downlineIds = [];
+  let currentLevelIds = [parentUserId];
+  while (currentLevelIds.length > 0) {
+    const nextLevelUsers = await User.find({ sponsor: { $in: currentLevelIds } }, { _id: 1 });
+    const nextLevelIds = nextLevelUsers.map(u => u._id);
+    downlineIds.push(...nextLevelIds);
+    currentLevelIds = nextLevelIds;
+  }
+  return downlineIds;
+};
+
 const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -728,16 +754,163 @@ const updateUser = async (req, res, next) => {
 
     if (sponsorId !== undefined && sponsorId !== user.sponsorId) {
       const cleanSponsorId = sponsorId ? sponsorId.trim().toUpperCase() : '';
-      user.sponsorId = cleanSponsorId;
-      if (cleanSponsorId) {
-        const sponsorUser = await User.findOne({ userId: cleanSponsorId });
-        if (sponsorUser) {
-          user.sponsor = sponsorUser._id;
-        } else {
-          return res.status(400).json({ message: `Sponsor ID ${sponsorId} does not exist.` });
+      if (!cleanSponsorId) {
+        return res.status(400).json({ message: 'Sponsor ID cannot be empty.' });
+      }
+      if (cleanSponsorId === user.userId) {
+        return res.status(400).json({ message: 'A user cannot be their own sponsor.' });
+      }
+
+      const sponsorUser = await User.findOne({ userId: cleanSponsorId });
+      if (!sponsorUser) {
+        return res.status(400).json({ message: `Sponsor ID ${sponsorId} does not exist.` });
+      }
+
+      const downlineIds = await getAllDownlineIds(user._id);
+      if (downlineIds.some(id => id.toString() === sponsorUser._id.toString())) {
+        return res.status(400).json({ message: 'Circular sponsoring detected: Sponsor cannot be one of the user\'s downlines.' });
+      }
+
+      const oldSponsorIdObj = user.sponsor;
+      let oldSponsor = null;
+      if (oldSponsorIdObj) {
+        oldSponsor = await User.findById(oldSponsorIdObj);
+      }
+
+      const subtreeSize = 1 + (user.totalTeam || 0);
+
+      // 1. Decrement old sponsor & ancestors team stats
+      if (oldSponsor) {
+        oldSponsor.directTeam = Math.max(0, (oldSponsor.directTeam || 0) - 1);
+        oldSponsor.totalTeam = Math.max(0, (oldSponsor.totalTeam || 0) - subtreeSize);
+        await oldSponsor.save();
+
+        let currentSponsorId = oldSponsor.sponsor;
+        let levelsChecked = 1;
+        while (currentSponsorId && levelsChecked < 30) {
+          const ancestor = await User.findById(currentSponsorId);
+          if (ancestor) {
+            ancestor.totalTeam = Math.max(0, (ancestor.totalTeam || 0) - subtreeSize);
+            await ancestor.save();
+            currentSponsorId = ancestor.sponsor;
+          } else {
+            break;
+          }
+          levelsChecked++;
         }
-      } else {
-        user.sponsor = null;
+      }
+
+      // 2. Increment new sponsor & ancestors team stats
+      sponsorUser.directTeam = (sponsorUser.directTeam || 0) + 1;
+      sponsorUser.totalTeam = (sponsorUser.totalTeam || 0) + subtreeSize;
+      await sponsorUser.save();
+
+      let currentSponsorId = sponsorUser.sponsor;
+      let levelsChecked = 1;
+      while (currentSponsorId && levelsChecked < 30) {
+        const ancestor = await User.findById(currentSponsorId);
+        if (ancestor) {
+          ancestor.totalTeam = (ancestor.totalTeam || 0) + subtreeSize;
+          await ancestor.save();
+          currentSponsorId = ancestor.sponsor;
+        } else {
+          break;
+        }
+        levelsChecked++;
+      }
+
+      // 3. Update level stats for user and their downline tree
+      const oldLevel = user.level || 0;
+      const newLevel = (sponsorUser.level || 0) + 1;
+      const levelDiff = newLevel - oldLevel;
+      
+      user.sponsorId = cleanSponsorId;
+      user.sponsor = sponsorUser._id;
+      user.level = newLevel;
+
+      if (levelDiff !== 0 && downlineIds.length > 0) {
+        await User.updateMany({ _id: { $in: downlineIds } }, { $inc: { level: levelDiff } });
+      }
+
+      // 4. Shift direct referral and level incomes (Level 1) from old sponsor to new sponsor
+      if (oldSponsor) {
+        const referralIncomes = await ReferralIncome.find({
+          fromUser: user._id,
+          user: oldSponsor._id
+        });
+
+        const levelIncomes = await LevelIncome.find({
+          fromUser: user._id,
+          user: oldSponsor._id,
+          level: 1
+        });
+
+        const totalReferralShift = referralIncomes.reduce((sum, r) => sum + r.income, 0);
+        const totalLevelShift = levelIncomes.reduce((sum, l) => sum + l.amount, 0);
+        const totalIncomeShift = totalReferralShift + totalLevelShift;
+
+        if (totalIncomeShift > 0) {
+          // Deduct from old sponsor
+          if (totalReferralShift > 0) {
+            oldSponsor.referralIncome = Math.max(0, (oldSponsor.referralIncome || 0) - totalReferralShift);
+          }
+          if (totalLevelShift > 0) {
+            oldSponsor.levelIncome = Math.max(0, (oldSponsor.levelIncome || 0) - totalLevelShift);
+          }
+          oldSponsor.totalEarning = Math.max(0, (oldSponsor.totalEarning || 0) - totalIncomeShift);
+
+          let remainingDeduction = totalIncomeShift;
+          if (oldSponsor.lockedStakingIncome && oldSponsor.lockedStakingIncome > 0) {
+            const lockedDeduct = Math.min(oldSponsor.lockedStakingIncome, remainingDeduction);
+            oldSponsor.lockedStakingIncome -= lockedDeduct;
+            remainingDeduction -= lockedDeduct;
+          }
+          if (remainingDeduction > 0) {
+            oldSponsor.availableBalance = Math.max(0, (oldSponsor.availableBalance || 0) - remainingDeduction);
+          }
+          await oldSponsor.save();
+
+          // Add to new sponsor
+          if (totalReferralShift > 0) {
+            sponsorUser.referralIncome = (sponsorUser.referralIncome || 0) + totalReferralShift;
+          }
+          if (totalLevelShift > 0) {
+            sponsorUser.levelIncome = (sponsorUser.levelIncome || 0) + totalLevelShift;
+          }
+          sponsorUser.totalEarning = (sponsorUser.totalEarning || 0) + totalIncomeShift;
+
+          // Check if new sponsor has active staked package
+          const newSponsorStakedPkg = await UserPackage.findOne({
+            user: sponsorUser._id,
+            status: 'active',
+            $or: [
+              { isStaked: true },
+              { stakingEnabled: true }
+            ],
+            stakingEndDate: { $gt: new Date() }
+          });
+
+          if (newSponsorStakedPkg) {
+            sponsorUser.lockedStakingIncome = (sponsorUser.lockedStakingIncome || 0) + totalIncomeShift;
+          } else {
+            sponsorUser.availableBalance = (sponsorUser.availableBalance || 0) + totalIncomeShift;
+          }
+          await sponsorUser.save();
+
+          // Update database records
+          if (referralIncomes.length > 0) {
+            await ReferralIncome.updateMany(
+              { fromUser: user._id, user: oldSponsor._id },
+              { $set: { user: sponsorUser._id, userId: sponsorUser.userId } }
+            );
+          }
+          if (levelIncomes.length > 0) {
+            await LevelIncome.updateMany(
+              { fromUser: user._id, user: oldSponsor._id, level: 1 },
+              { $set: { user: sponsorUser._id, userId: sponsorUser.userId } }
+            );
+          }
+        }
       }
     }
 

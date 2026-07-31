@@ -289,6 +289,86 @@ const PromotionalBonusHistory = () => {
         </div>
       </div>
 
+      {/* ── Direct Legs Business Breakdown */}
+      <div style={{
+        background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.6)', borderRadius: 18,
+        padding: 24, marginBottom: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+        textAlign: 'left'
+      }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: 'var(--near-black)' }}>Direct Legs Business Breakdown</h3>
+        <p style={{ margin: '0 0 16px', fontSize: 11, color: 'var(--muted)' }}>Identify which direct leg counts as your Main Leg and track their individual business volume contributions</p>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {directTeam.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '12px 0' }}>No direct referrals found.</div>
+          ) : (
+            (() => {
+              const mappedLegs = directTeam.map(dir => {
+                const business = getTeamBusinessVal(dir);
+                return {
+                  _id: dir._id,
+                  userId: dir.userId,
+                  fullName: dir.fullName,
+                  business
+                };
+              });
+
+              const sortedMappedLegs = [...mappedLegs].sort((a, b) => b.business - a.business);
+              const maxBusiness = sortedMappedLegs.length > 0 ? sortedMappedLegs[0].business : 0;
+              const hasMultipleOrOne = sortedMappedLegs.length > 0;
+
+              return mappedLegs.map((leg, idx) => {
+                const isMainLeg = hasMultipleOrOne && leg._id === sortedMappedLegs[0]._id && leg.business > 0;
+                
+                return (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'rgba(0, 0, 0, 0.02)',
+                    border: isMainLeg ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid rgba(255, 255, 255, 0.5)',
+                    borderRadius: 14,
+                    padding: '12px 16px',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--near-black)' }}>
+                        {leg.fullName}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                        ID: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{leg.userId}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, display: 'block' }}>BUSINESS VOLUME</span>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--near-black)', fontFamily: 'monospace' }}>
+                          ${leg.business.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: '4px 8px',
+                        borderRadius: 8,
+                        textTransform: 'uppercase',
+                        background: isMainLeg ? 'rgba(124, 58, 237, 0.1)' : 'rgba(13, 148, 136, 0.1)',
+                        color: isMainLeg ? '#7C3AED' : '#0D9488',
+                        border: isMainLeg ? '1px solid rgba(124, 58, 237, 0.2)' : '1px solid rgba(13, 148, 136, 0.2)'
+                      }}>
+                        {isMainLeg ? 'Main Leg' : 'Weaker Leg'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              });
+            })()
+          )}
+        </div>
+      </div>
+
       {/* ── Salary Condition Alert Banner */}
       <div style={{
         background: 'rgba(243, 16, 253, 0.05)',

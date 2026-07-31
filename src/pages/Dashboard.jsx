@@ -90,6 +90,7 @@ export default function Dashboard() {
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
   const [transactions, setTransactions] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
   const [kycStatus, setKycStatus] = useState('none');
   const [copied, setCopied] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('month');
@@ -150,6 +151,21 @@ export default function Dashboard() {
       }
     };
     fetchTransactions();
+  }, []);
+
+  // Fetch Withdrawals
+  useEffect(() => {
+    const fetchWithdrawals = async () => {
+      try {
+        const res = await api.get('/withdrawal/history');
+        if (res.data) {
+          setWithdrawals(res.data);
+        }
+      } catch (err) {
+        console.error('Error fetching withdrawals:', err);
+      }
+    };
+    fetchWithdrawals();
   }, []);
 
   // Fetch Packages & Update Progress Bar
@@ -277,6 +293,165 @@ export default function Dashboard() {
             BSC Node #{currentUser?.userId || 'N/A'} — Connected
           </span>
         </div>
+      </div>
+
+      {/* ── Account Summary & Capping Details */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(243,16,253,0.02) 0%, rgba(124,58,237,0.01) 100%)',
+        border: '1px solid rgba(243,16,253,0.15)',
+        borderRadius: 20,
+        padding: '24px',
+        marginBottom: 24,
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)',
+        backdropFilter: 'blur(10px)',
+      }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--near-black)', margin: 0 }}>
+              Welcome back, <span style={{ color: 'var(--pink)' }}>{currentUser?.fullName || 'User'}</span>
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--muted)', margin: '4px 0 0', fontWeight: 600 }}>
+              User ID: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--pink)' }}>{currentUser?.userId || 'N/A'}</span>
+            </p>
+          </div>
+          <div style={{
+            background: 'rgba(243,16,253,0.06)',
+            border: '1px solid rgba(243,16,253,0.15)',
+            borderRadius: 12,
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <ShieldCheck size={16} style={{ color: 'var(--pink)' }} />
+            <span style={{ fontSize: 12, color: 'var(--near-black)', fontWeight: 700 }}>
+              Status: {isActive ? 'ACTIVE' : 'INACTIVE'}
+            </span>
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: 16,
+          borderTop: '1px solid rgba(243,16,253,0.1)',
+          paddingTop: 20
+        }}>
+          <div>
+            <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Package(s)</span>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--near-black)', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {activePackages.length > 0 ? (
+                activePackages.map((p, idx) => (
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Zap size={12} style={{ color: 'var(--pink)' }} />
+                    {p.packageId?.name || 'Package'} (${p.amount})
+                  </span>
+                ))
+              ) : (
+                <span style={{ color: 'var(--muted-light)' }}>No Active Package</span>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Investment</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--near-black)', display: 'block', marginTop: 4 }}>
+              ${(currentUser?.totalInvestment || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+
+          {(() => {
+            const hasLandSecurity = activePackages.some(p => 
+              p.packageId?.name?.toLowerCase().includes('land') || 
+              p.packageId?.name?.toLowerCase().includes('security')
+            );
+            const capMultiplier = hasLandSecurity ? 2 : 4;
+            const capLimit = (currentUser?.totalInvestment || 0) * capMultiplier;
+
+            const totalWithdrawnAmount = withdrawals
+              .filter(w => w.status === 'approved')
+              .reduce((sum, w) => sum + w.amount, 0);
+
+            const workingCappingEarnings = (currentUser?.miningIncome || 0) + 
+                                            (currentUser?.referralIncome || 0) + 
+                                            (currentUser?.levelIncome || 0);
+
+            const usedCapping = hasLandSecurity ? totalWithdrawnAmount : workingCappingEarnings;
+            const pendingCapping = Math.max(0, capLimit - usedCapping);
+            const cappingPercentage = capLimit === 0 ? 0 : Math.min(100, (usedCapping / capLimit) * 100);
+
+            return (
+              <>
+                <div>
+                  <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {hasLandSecurity ? 'Total Withdrawn (2x Cap)' : 'Qualifying Earnings (4x Cap)'}
+                  </span>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--near-black)', display: 'block', marginTop: 4 }}>
+                    ${usedCapping.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--muted-light)', fontWeight: 500, display: 'block', marginTop: 2 }}>
+                    {hasLandSecurity ? 'Approved withdrawals' : 'Self ROI + Booster + Level'}
+                  </span>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {hasLandSecurity ? '2x Capping Pending' : '4x Capping Pending'}
+                  </span>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--pink)', display: 'block', marginTop: 4 }}>
+                    ${pendingCapping.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--muted-light)', fontWeight: 500, display: 'block', marginTop: 2 }}>
+                    Max Limit: ${capLimit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
+        {/* Progress Bar for Cap */}
+        {(() => {
+          const hasLandSecurity = activePackages.some(p => 
+            p.packageId?.name?.toLowerCase().includes('land') || 
+            p.packageId?.name?.toLowerCase().includes('security')
+          );
+          const capMultiplier = hasLandSecurity ? 2 : 4;
+          const capLimit = (currentUser?.totalInvestment || 0) * capMultiplier;
+
+          const totalWithdrawnAmount = withdrawals
+            .filter(w => w.status === 'approved')
+            .reduce((sum, w) => sum + w.amount, 0);
+
+          const workingCappingEarnings = (currentUser?.miningIncome || 0) + 
+                                          (currentUser?.referralIncome || 0) + 
+                                          (currentUser?.levelIncome || 0);
+
+          const usedCapping = hasLandSecurity ? totalWithdrawnAmount : workingCappingEarnings;
+          const cappingPercentage = capLimit === 0 ? 0 : Math.min(100, (usedCapping / capLimit) * 100);
+
+          return (
+            <div style={{ marginTop: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginBottom: 6 }}>
+                <span>
+                  {hasLandSecurity ? 'CAPPING PROGRESS (2X WITHDRAWALS)' : 'CAPPING PROGRESS (4X ROI & LEVEL COMMISSION)'}
+                </span>
+                <span>
+                  {cappingPercentage.toFixed(1)}%
+                </span>
+              </div>
+              <div style={{ width: '100%', height: 8, background: 'rgba(0,0,0,0.1)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(243,16,253,0.1)' }}>
+                <div style={{
+                  width: `${cappingPercentage}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, var(--pink) 0%, #A020F0 100%)',
+                  borderRadius: 4,
+                  transition: 'width 0.5s ease-in-out'
+                }} />
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── Top Section: 4 Metric Cards */}
