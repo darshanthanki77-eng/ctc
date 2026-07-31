@@ -159,7 +159,7 @@ const PromotionalBonusHistory = () => {
     let sum = 0;
     allLevels.forEach(lvl => {
       lvl.members.forEach(m => {
-        if (m.sponsor === member._id && m.isActive && (m.pins === undefined || m.pins > 0)) {
+        if (m.sponsor === member._id) {
           sum += (m.totalInvestment || 0) + getTeamBusinessVal(m);
         }
       });
