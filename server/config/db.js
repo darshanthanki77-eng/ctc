@@ -46,13 +46,13 @@ const connectDB = async () => {
       console.log('[DB] Compounding balance and staking fields backfill complete.');
     }
 
-    // Auto-backfill and sync availableBalance with total earnings minus approved withdrawals for all users
+    // Note: User availableBalance sync was commented out to prevent Vercel execution timeouts during connection startups.
+    /*
     const User = require('../models/User');
     const Withdrawal = require('../models/Withdrawal');
     const usersToSync = await User.find();
     console.log(`[DB] Syncing availableBalance for ${usersToSync.length} users...`);
     for (let u of usersToSync) {
-      // Find all completed/expired staked packages to add back their released principals
       const userPackages = await UserPackage.find({ user: u._id });
       let completedStakedPrincipal = 0;
       let activeStakedROI = 0;
@@ -79,6 +79,7 @@ const connectDB = async () => {
       }
     }
     console.log('[DB] User availableBalance sync complete.');
+    */
   } catch (error) {
     console.error(`MongoDB connection error: ${error.message}`);
     // Do NOT call process.exit(1) — on Vercel serverless it kills the handler
