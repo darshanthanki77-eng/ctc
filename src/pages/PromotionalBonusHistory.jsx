@@ -168,7 +168,7 @@ const PromotionalBonusHistory = () => {
   };
 
   const legBusinesses = directTeam.map(dir => {
-    const business = getTeamBusinessVal(dir);
+    const business = (dir.totalInvestment || 0) + getTeamBusinessVal(dir);
     return { id: dir._id, business };
   });
 
