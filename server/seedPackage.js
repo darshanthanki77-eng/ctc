@@ -7,7 +7,7 @@ const packages = [
     name: 'Package 1',
     minAmount: 100,
     maxAmount: 1000,
-    dailyProfit: 1.0, // 0.5% every 12 hours => 1.0% daily
+    dailyProfit: 0.5,
     validity: 36500, // Lifetime (approx 100 years)
     isReferralOnly: false,
     status: true
@@ -16,7 +16,7 @@ const packages = [
     name: 'Package 2',
     minAmount: 1500,
     maxAmount: 5000,
-    dailyProfit: 1.2, // 0.6% every 12 hours => 1.2% daily
+    dailyProfit: 0.6,
     validity: 36500, // Lifetime (approx 100 years)
     isReferralOnly: false,
     status: true
@@ -25,7 +25,7 @@ const packages = [
     name: 'Package 3',
     minAmount: 10000,
     maxAmount: 25000,
-    dailyProfit: 1.4, // 0.7% every 12 hours => 1.4% daily
+    dailyProfit: 0.65,
     validity: 36500, // Lifetime (approx 100 years)
     isReferralOnly: false,
     status: true
@@ -34,7 +34,7 @@ const packages = [
     name: 'Package 4',
     minAmount: 50000,
     maxAmount: 50000,
-    dailyProfit: 1.6, // 0.8% every 12 hours => 1.6% daily
+    dailyProfit: 0.75,
     validity: 36500, // Lifetime (approx 100 years)
     isReferralOnly: false,
     status: true
@@ -52,10 +52,6 @@ const packages = [
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/ctc').then(async () => {
   console.log('Connected to MongoDB.');
-  
-  // Clear all existing packages first
-  await Package.deleteMany({});
-  console.log('Deleted all existing packages from database.');
   
   for (const pkgData of packages) {
     const updatedPkg = await Package.findOneAndUpdate(
