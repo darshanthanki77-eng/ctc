@@ -17,6 +17,8 @@ import LevelIncome from './pages/LevelIncome';
 import MiningHistory from './pages/MiningHistory';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import PackageHistory from './pages/PackageHistory';
 import PromotionalBonusHistory from './pages/PromotionalBonusHistory';
 import Notifications from './pages/Notifications';
@@ -80,6 +82,8 @@ function App() {
           <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
 
         {/* Protected Dashboard Layout Routes */}

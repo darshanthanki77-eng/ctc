@@ -70,7 +70,38 @@ const sendWithdrawalApprovedEmail = async (email, fullName, amount, txHash) => {
   }
 };
 
+const sendPasswordResetEmail = async (email, fullName, resetUrl) => {
+  const mailOptions = {
+    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'trustx46@gmail.com'}>`,
+    to: email,
+    subject: 'Password Reset Request - CTC Platform',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <h2 style="color: #A020F0; text-align: center;">Reset Your Password</h2>
+        <p>Dear ${fullName},</p>
+        <p>You requested to reset your password. Please click the button below to set a new password. This link is valid for 1 hour:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background-color: #A020F0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Reset Password</a>
+        </div>
+        <p>If the button doesn't work, you can copy and paste the following link into your browser:</p>
+        <p style="word-break: break-all; color: #555;">${resetUrl}</p>
+        <p>If you did not request this reset, please ignore this email.</p>
+        <br />
+        <p>Best Regards,<br />The CTC Team</p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Password reset email sent to:', email);
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+  }
+};
+
 module.exports = {
   sendWelcomeEmail,
   sendWithdrawalApprovedEmail,
+  sendPasswordResetEmail,
 };

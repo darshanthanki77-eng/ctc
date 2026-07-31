@@ -36,7 +36,7 @@ const getAllPackages = async (req, res, next) => {
 
 const buyPackage = async (req, res, next) => {
   try {
-    const { packageId, amount, txHash, senderAddress } = req.body;
+    const { packageId, amount, txHash, senderAddress, targetUserId } = req.body;
 
     if (!senderAddress) {
       return res.status(400).json({ message: 'Sender wallet address is required for verification.' });
@@ -49,22 +49,40 @@ const buyPackage = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid amount for this package' });
     }
 
+    const usdtAmount = amount / 2;
+    const walletAmount = amount / 2;
+
+    const buyer = await User.findById(req.user._id);
+    if (!buyer) return res.status(404).json({ message: 'Buyer user not found' });
+    if (buyer.availableBalance < walletAmount) {
+      return res.status(400).json({ message: 'Insufficient wallet balance for 50:50 top-up.' });
+    }
+
+    let targetUser = buyer;
+    if (targetUserId) {
+      const cleanTargetId = targetUserId.trim().toUpperCase();
+      if (cleanTargetId !== buyer.userId) {
+        targetUser = await User.findOne({ userId: cleanTargetId });
+        if (!targetUser) {
+          return res.status(404).json({ message: `Target User ID ${targetUserId} does not exist.` });
+        }
+      }
+    }
+
     // Check for duplicate transaction
     const existingTx = await Transaction.findOne({ txHash });
     if (existingTx) {
       return res.status(400).json({ message: 'This transaction hash has already been used. Duplicate transactions are not allowed.' });
     }
 
-    const verification = await verifyTransaction(txHash, amount, senderAddress);
+    // Verify 50% of the package amount
+    const verification = await verifyTransaction(txHash, usdtAmount, senderAddress);
     if (!verification.status) {
       return res.status(400).json({ message: verification.message });
     }
 
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    // Zero-pin restriction checks
-    if (user.pins === 0) {
+    // Zero-pin restriction checks for targetUser
+    if (targetUser.pins === 0) {
       if (!pkg.isZeroPin) {
         return res.status(400).json({ message: 'Only the standard $100-$500 Package is available for 0-Pin users.' });
       }
@@ -74,18 +92,20 @@ const buyPackage = async (req, res, next) => {
       }
     }
 
-    if (user.role === 'user' && (user.totalInvestment + amount) > 60000) {
+    if (targetUser.role === 'user' && (targetUser.totalInvestment + amount) > 60000) {
       return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $60,000.' });
     }
 
-    // No upgrades: multiple packages can be active simultaneously
+    // Deduct wallet amount from buyer
+    buyer.availableBalance = Math.round((buyer.availableBalance - walletAmount) * 1000000) / 1000000;
+    await buyer.save();
 
-    const isBVEligible = true; // External deposits count towards BV
+    const isBVEligible = true;
     const durationDays = pkg.validity;
 
     const userPackage = await UserPackage.create({
-      userId: user.userId,
-      user: user._id,
+      userId: targetUser.userId,
+      user: targetUser._id,
       packageId: pkg._id,
       amount,
       compoundingBalance: amount,
@@ -100,26 +120,37 @@ const buyPackage = async (req, res, next) => {
       autoCompounding: false
     });
 
-    // Note: user.isActive is NOT set to true here. Admin must manually activate the user ID.
-    user.activePackage = pkg._id;
-    user.totalInvestment += amount; // Expands their 4x global cap
-    await user.save();
+    targetUser.activePackage = pkg._id;
+    targetUser.totalInvestment += amount;
+    await targetUser.save();
 
-    await AuditLog.create({                                                                         
-      
+    await AuditLog.create({
       action: 'PACKAGE_ACTIVATION',
-      userId: user._id,
+      userId: targetUser._id,
       packageId: userPackage._id,
       amount: amount,
       details: {
         txHash,
+        walletAmountPaid: walletAmount,
+        buyerId: buyer.userId,
         isUpgrade: false
       }
     });
 
+    // Create wallet payment deduction log under buyer
     await Transaction.create({
-      userId: user.userId,
-      user: user._id,
+      userId: buyer.userId,
+      user: buyer._id,
+      type: 'withdrawal',
+      amount: walletAmount,
+      status: 'success',
+      txHash: `WALLET_TOPUP_${targetUser.userId}`
+    });
+
+    // Create deposit/activation log under targetUser
+    await Transaction.create({
+      userId: targetUser.userId,
+      user: targetUser._id,
       type: 'deposit',
       amount,
       txHash,
@@ -131,12 +162,8 @@ const buyPackage = async (req, res, next) => {
       status: 'success'
     });
 
-    if (user.sponsor) {
-      // Direct referral income is disabled in this project
-      // await distributeDirectReferral(user.sponsor, amount, user.userId, user._id);
-
-      // Check Fastrack Bonus for Sponsor
-      const sponsor = await User.findById(user.sponsor);
+    if (targetUser.sponsor) {
+      const sponsor = await User.findById(targetUser.sponsor);
       if (sponsor && !sponsor.fastrackQualified) {
         const sponsorPkg = await UserPackage.findOne({ user: sponsor._id, status: 'active' }).sort({ createdAt: -1 });
         if (sponsorPkg) {
@@ -144,7 +171,6 @@ const buyPackage = async (req, res, next) => {
           tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
           if (sponsorPkg.createdAt >= tenDaysAgo) {
-            // Count unique directs with same or higher active package (excluding 0-pin users)
             const qualifyingDirects = await UserPackage.distinct('user', {
               user: { $in: await User.find({ sponsor: sponsor._id, pins: { $gt: 0 } }).distinct('_id') },
               amount: { $gte: sponsorPkg.amount },
@@ -162,8 +188,11 @@ const buyPackage = async (req, res, next) => {
 
     const io = req.app.get('io');
     if (io) {
-      io.emit('new_deposit', { user: user.userId, amount });
-      io.to(user._id.toString()).emit('notification', `Package ${pkg.name} activated successfully!`);
+      io.emit('new_deposit', { user: targetUser.userId, amount });
+      io.to(targetUser._id.toString()).emit('notification', `Package ${pkg.name} activated successfully!`);
+      if (buyer._id.toString() !== targetUser._id.toString()) {
+        io.to(buyer._id.toString()).emit('notification', `Successfully topped up User ID ${targetUser.userId} with ${pkg.name}!`);
+      }
     }
 
     res.status(200).json({ message: 'Package activated successfully', userPackage });
@@ -263,7 +292,7 @@ const startStaking = async (req, res, next) => {
 
 const buyPackageManual = async (req, res, next) => {
   try {
-    const { packageId, amount, txHash, networkType, senderAddress } = req.body;
+    const { packageId, amount, txHash, networkType, senderAddress, targetUserId } = req.body;
 
     if (!packageId || !amount || !txHash || !networkType) {
       return res.status(400).json({ message: 'Package ID, amount, transaction hash, and network type are required.' });
@@ -281,6 +310,26 @@ const buyPackageManual = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid amount for this package' });
     }
 
+    const usdtAmount = numericAmount / 2;
+    const walletAmount = numericAmount / 2;
+
+    const buyer = await User.findById(req.user._id);
+    if (!buyer) return res.status(404).json({ message: 'Buyer user not found' });
+    if (buyer.availableBalance < walletAmount) {
+      return res.status(400).json({ message: 'Insufficient wallet balance for 50:50 top-up.' });
+    }
+
+    let targetUser = buyer;
+    if (targetUserId) {
+      const cleanTargetId = targetUserId.trim().toUpperCase();
+      if (cleanTargetId !== buyer.userId) {
+        targetUser = await User.findOne({ userId: cleanTargetId });
+        if (!targetUser) {
+          return res.status(404).json({ message: `Target User ID ${targetUserId} does not exist.` });
+        }
+      }
+    }
+
     // Check for duplicate transaction hash in Transactions
     const existingTx = await Transaction.findOne({ txHash });
     if (existingTx) {
@@ -293,11 +342,8 @@ const buyPackageManual = async (req, res, next) => {
       return res.status(400).json({ message: 'A manual buy request with this transaction hash already exists.' });
     }
 
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    // Zero-pin restriction checks
-    if (user.pins === 0) {
+    // Zero-pin restriction checks for targetUser
+    if (targetUser.pins === 0) {
       if (!pkg.isZeroPin) {
         return res.status(400).json({ message: 'Only the standard $100-$500 Package is available for 0-Pin users.' });
       }
@@ -307,26 +353,31 @@ const buyPackageManual = async (req, res, next) => {
       }
     }
 
-    if (user.role === 'user' && (user.totalInvestment + numericAmount) > 60000) {
+    if (targetUser.role === 'user' && (targetUser.totalInvestment + numericAmount) > 60000) {
       return res.status(400).json({ message: 'Standard users are limited to a maximum investment of $60,000.' });
     }
 
-    // No upgrades: multiple packages can be active simultaneously
+    // Deduct wallet amount from buyer immediately to lock it
+    buyer.availableBalance = Math.round((buyer.availableBalance - walletAmount) * 1000000) / 1000000;
+    await buyer.save();
 
-    // Create Manual Package Buy Request
+    // Create Manual Package Buy Request with target user & locked wallet amount
     const manualRequest = await ManualPackageBuy.create({
-      userId: user.userId,
-      user: user._id,
+      userId: buyer.userId,
+      user: buyer._id,
       packageId: pkg._id,
       amount: numericAmount,
       networkType,
       txHash,
       senderAddress: senderAddress || '',
+      targetUserId: targetUser.userId,
+      targetUser: targetUser._id,
+      walletAmountPaid: walletAmount,
       status: 'pending'
     });
 
     res.status(200).json({
-      message: 'Your manual package purchase request has been submitted successfully and is pending admin approval.',
+      message: 'Your manual package purchase request (50:50) has been submitted successfully and is pending admin approval.',
       manualRequest
     });
   } catch (error) {

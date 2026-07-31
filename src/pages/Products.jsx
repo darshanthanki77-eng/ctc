@@ -42,6 +42,7 @@ export default function Products() {
   const [selectedPackage, setSelectedPackage] = useState(null);
   
   const [investmentAmount, setInvestmentAmount] = useState('');
+  const [targetUserId, setTargetUserId] = useState('');
   const [amountError, setAmountError] = useState('');
   const [txHash, setTxHash] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -204,7 +205,14 @@ export default function Products() {
         provider.getBalance(userAddress)
       ]);
 
-      const amount = ethers.parseUnits(investmentAmount.toString(), decimals);
+      const splitWalletValue = Number(investmentAmount) / 2;
+      const splitUsdtValue = Number(investmentAmount) / 2;
+
+      if (currentUser?.availableBalance < splitWalletValue) {
+        throw new Error(`Insufficient Available Wallet Balance. You need at least $${splitWalletValue} USDT in your available balance for the 50:50 payment.`);
+      }
+
+      const amount = ethers.parseUnits(splitUsdtValue.toString(), decimals);
 
       if (bnbBalance === 0n) {
         throw new Error("Insufficient BNB for gas fees. You must have some BNB in your wallet to cover the Binance Smart Chain transaction fee.");
@@ -212,7 +220,7 @@ export default function Products() {
 
       if (balanceVal < amount) {
         const readableBalance = ethers.formatUnits(balanceVal, decimals);
-        throw new Error(`Insufficient USDT balance. You have ${readableBalance} USDT, but need ${investmentAmount} USDT.`);
+        throw new Error(`Insufficient USDT balance in MetaMask. You have ${readableBalance} USDT, but need ${splitUsdtValue} USDT.`);
       }
 
       toast.info("Please confirm the transaction in MetaMask...");
@@ -228,11 +236,13 @@ export default function Products() {
           amount: Number(investmentAmount),
           txHash: tx.hash,
           senderAddress: userAddress,
+          targetUserId: targetUserId || undefined
         });
 
         toast.success(response.data.message || 'Package Activated Successfully!');
         dispatch(fetchProfile());
         setSelectedPackage(null);
+        setTargetUserId('');
       } else {
         throw new Error("Transaction failed on-chain");
       }
@@ -251,6 +261,12 @@ export default function Products() {
       return;
     }
 
+    const splitWalletValue = Number(investmentAmount) / 2;
+    if (currentUser?.availableBalance < splitWalletValue) {
+      toast.error(`Insufficient Available Wallet Balance. You need at least $${splitWalletValue} USDT in your available balance for the 50:50 payment.`);
+      return;
+    }
+
     try {
       setIsProcessing(true);
       const response = await api.post('/package/manual-buy', {
@@ -259,12 +275,14 @@ export default function Products() {
         txHash,
         networkType,
         senderAddress,
+        targetUserId: targetUserId || undefined
       });
 
       toast.success(response.data.message || 'Manual purchase request submitted successfully!');
       setSelectedPackage(null);
       setTxHash('');
       setSenderAddress('');
+      setTargetUserId('');
     } catch (error) {
       console.error(error);
       const errorMsg = error.response?.data?.message || error.message || 'Failed to submit request. Please try again.';
@@ -763,6 +781,31 @@ export default function Products() {
                     </div>
                   </div>
 
+                  {/* Target User ID Input */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Target User ID (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="Leave blank to top up your own ID"
+                      value={targetUserId}
+                      onChange={e => setTargetUserId(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#FFFFFF',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: '10px',
+                        padding: '10px 14px',
+                        color: '#0F172A',
+                        fontWeight: 700,
+                        fontSize: '13.5px',
+                        outline: 'none',
+                        transition: 'all 0.2s',
+                      }}
+                      onFocus={e => e.target.style.borderColor = '#F310FD'}
+                      onBlur={e => e.target.style.borderColor = '#CBD5E1'}
+                    />
+                  </div>
+
                   {/* Investment Amount Input */}
                   <div>
                     <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Investment Amount (USDT)</label>
@@ -798,6 +841,35 @@ export default function Products() {
                       )
                     )}
                   </div>
+
+                  {/* 50:50 Payment Breakdown */}
+                  {Number(investmentAmount) > 0 && (
+                    <div style={{
+                      background: 'rgba(243, 16, 253, 0.04)',
+                      border: '1px solid rgba(243, 16, 253, 0.15)',
+                      borderRadius: '12px',
+                      padding: '12px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                        <span style={{ color: '#64748B' }}>50% Wallet Balance:</span>
+                        <span style={{ color: '#0F172A', fontFamily: 'monospace' }}>${(Number(investmentAmount) / 2).toLocaleString()} USDT</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                        <span style={{ color: '#64748B' }}>50% USDT Payment:</span>
+                        <span style={{ color: '#F310FD', fontFamily: 'monospace' }}>${(Number(investmentAmount) / 2).toLocaleString()} USDT</span>
+                      </div>
+                      
+                      {/* Balance Check warning */}
+                      {currentUser?.availableBalance < (Number(investmentAmount) / 2) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#ef4444', fontWeight: 700, marginTop: '4px' }}>
+                          <AlertCircle size={14} /> Insufficient Wallet Balance (${(currentUser?.availableBalance || 0).toLocaleString()} available)
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Manual Pay Address, QR & hash fields */}

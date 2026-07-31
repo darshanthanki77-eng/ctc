@@ -1140,9 +1140,16 @@ const approveManualBuy = async (req, res, next) => {
       return res.status(400).json({ message: `This request is already ${manualRequest.status}.` });
     }
 
-    const user = await User.findById(manualRequest.user);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+    const buyer = await User.findById(manualRequest.user);
+    if (!buyer) {
+      return res.status(404).json({ message: 'Buyer user not found.' });
+    }
+
+    // Retrieve target user (if topped up another ID, else default to buyer)
+    const targetUserIdObj = manualRequest.targetUser || manualRequest.user;
+    const targetUser = await User.findById(targetUserIdObj);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'Target user not found.' });
     }
 
     const pkg = await Package.findById(manualRequest.packageId);
@@ -1155,12 +1162,10 @@ const approveManualBuy = async (req, res, next) => {
     const senderAddress = manualRequest.senderAddress;
     const networkType = manualRequest.networkType;
 
-    // No upgrades: multiple packages can be active simultaneously
-
     const durationDays = pkg.validity;
     const userPackage = await UserPackage.create({
-      userId: user.userId,
-      user: user._id,
+      userId: targetUser.userId,
+      user: targetUser._id,
       packageId: pkg._id,
       amount,
       compoundingBalance: amount,
@@ -1175,13 +1180,13 @@ const approveManualBuy = async (req, res, next) => {
       autoCompounding: false
     });
 
-    user.activePackage = pkg._id;
-    user.totalInvestment += amount; // Expands their 4x global cap
-    await user.save();
+    targetUser.activePackage = pkg._id;
+    targetUser.totalInvestment += amount;
+    await targetUser.save();
 
     await AuditLog.create({
       action: 'PACKAGE_ACTIVATION',
-      userId: user._id,
+      userId: targetUser._id,
       adminId: req.user._id,
       packageId: userPackage._id,
       amount,
@@ -1189,13 +1194,14 @@ const approveManualBuy = async (req, res, next) => {
         txHash,
         networkType,
         isManualBuyApproval: true,
+        buyerId: buyer.userId,
         isUpgrade: false
       }
     });
 
     await Transaction.create({
-      userId: user.userId,
-      user: user._id,
+      userId: targetUser.userId,
+      user: targetUser._id,
       type: 'deposit',
       amount,
       txHash,
@@ -1205,8 +1211,8 @@ const approveManualBuy = async (req, res, next) => {
     });
 
     // Check Fastrack Bonus for Sponsor
-    if (user.sponsor) {
-      const sponsor = await User.findById(user.sponsor);
+    if (targetUser.sponsor) {
+      const sponsor = await User.findById(targetUser.sponsor);
       if (sponsor && !sponsor.fastrackQualified) {
         const sponsorPkg = await UserPackage.findOne({ user: sponsor._id, status: 'active' }).sort({ createdAt: -1 });
         if (sponsorPkg) {
@@ -1214,7 +1220,6 @@ const approveManualBuy = async (req, res, next) => {
           tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
           if (sponsorPkg.createdAt >= tenDaysAgo) {
-            // Count unique directs with same or higher package (excluding 0-pin users)
             const qualifyingDirects = await UserPackage.distinct('user', {
               user: { $in: await User.find({ sponsor: sponsor._id, pins: { $gt: 0 } }).distinct('_id') },
               amount: { $gte: sponsorPkg.amount },
@@ -1238,8 +1243,11 @@ const approveManualBuy = async (req, res, next) => {
 
     const io = req.app.get('io');
     if (io) {
-      io.emit('new_deposit', { user: user.userId, amount });
-      io.to(user._id.toString()).emit('notification', `Manual purchase of package ${pkg.name} has been approved.`);
+      io.emit('new_deposit', { user: targetUser.userId, amount });
+      io.to(targetUser._id.toString()).emit('notification', `Manual purchase of package ${pkg.name} has been approved.`);
+      if (buyer._id.toString() !== targetUser._id.toString()) {
+        io.to(buyer._id.toString()).emit('notification', `Manual top-up of User ID ${targetUser.userId} has been approved.`);
+      }
     }
 
     res.json({ message: 'Manual package buy request approved and activated successfully.', manualRequest });
@@ -1260,6 +1268,25 @@ const rejectManualBuy = async (req, res, next) => {
 
     if (manualRequest.status !== 'pending') {
       return res.status(400).json({ message: `This request is already ${manualRequest.status}.` });
+    }
+
+    // Refund locked wallet amount if present
+    if (manualRequest.walletAmountPaid && manualRequest.walletAmountPaid > 0) {
+      const buyer = await User.findById(manualRequest.user);
+      if (buyer) {
+        buyer.availableBalance = Math.round((buyer.availableBalance + manualRequest.walletAmountPaid) * 1000000) / 1000000;
+        await buyer.save();
+
+        await Transaction.create({
+          userId: buyer.userId,
+          user: buyer._id,
+          type: 'deposit',
+          amount: manualRequest.walletAmountPaid,
+          status: 'success',
+          txHash: `REFUND_TOPUP_${manualRequest._id}`,
+          description: `Refund for rejected manual top-up request (ID: ${manualRequest._id})`
+        });
+      }
     }
 
     manualRequest.status = 'rejected';

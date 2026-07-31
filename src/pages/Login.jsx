@@ -271,6 +271,21 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Forgot Password Link */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+              <Link 
+                to="/forgot-password" 
+                style={{ 
+                  fontSize: 14,
+                  color: '#7C3AED', 
+                  fontWeight: 600, 
+                  textDecoration: 'none'
+                }}
+              >
+                Forgot Password?
+              </Link>
+            </div>
+
             {/* Submit Button */}
             <button 
               type="submit" 
