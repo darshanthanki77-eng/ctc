@@ -310,6 +310,7 @@ const PromotionalBonusHistory = () => {
                   _id: dir._id,
                   userId: dir.userId,
                   fullName: dir.fullName,
+                  ownInvestment: dir.totalInvestment || 0,
                   business
                 };
               });
@@ -330,6 +331,8 @@ const PromotionalBonusHistory = () => {
                     border: isMainLeg ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid rgba(255, 255, 255, 0.5)',
                     borderRadius: 14,
                     padding: '12px 16px',
+                    gap: 12,
+                    flexWrap: 'wrap'
                   }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--near-black)' }}>
@@ -340,10 +343,17 @@ const PromotionalBonusHistory = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, display: 'block' }}>BUSINESS VOLUME</span>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--near-black)', fontFamily: 'monospace' }}>
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, display: 'block' }}>OWN BV</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--near-black)', fontFamily: 'monospace' }}>
+                          ${leg.ownInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, display: 'block' }}>DOWNLINE BV</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--near-black)', fontFamily: 'monospace' }}>
                           ${leg.business.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
