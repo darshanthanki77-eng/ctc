@@ -112,7 +112,13 @@ export default function Products() {
     setAmountError('');
     setTxHash('');
     setSenderAddress('');
-    setPaymentMethod('metamask');
+    if (pkg.name && pkg.name.toLowerCase().includes('land')) {
+      setPaymentMethod('manual');
+      setNetworkType('INR');
+    } else {
+      setPaymentMethod('metamask');
+      setNetworkType('Bep20');
+    }
     // Lock background scroll while modal is open
     document.body.style.overflow = 'hidden';
   };
@@ -722,52 +728,67 @@ export default function Products() {
                 {/* Payment Method */}
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Payment Method</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('metamask')}
-                      style={{
-                        padding: '10px 16px',
-                        borderRadius: '12px',
-                        fontWeight: 700,
-                        fontSize: '13px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        transition: 'all 0.2s ease',
-                        cursor: 'pointer',
-                        background: paymentMethod === 'metamask' ? 'rgba(243,16,253,0.08)' : '#F8FAFC',
-                        border: paymentMethod === 'metamask' ? '1.5px solid #F310FD' : '1px solid #E2E8F0',
-                        color: paymentMethod === 'metamask' ? '#F310FD' : '#64748B',
-                        boxShadow: paymentMethod === 'metamask' ? '0 4px 12px rgba(243,16,253,0.08)' : 'none',
-                      }}
-                    >
-                      🦊 Pay via MetaMask
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('manual')}
-                      style={{
-                        padding: '10px 16px',
-                        borderRadius: '12px',
-                        fontWeight: 700,
-                        fontSize: '13px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        transition: 'all 0.2s ease',
-                        cursor: 'pointer',
-                        background: paymentMethod === 'manual' ? 'rgba(243,16,253,0.08)' : '#F8FAFC',
-                        border: paymentMethod === 'manual' ? '1.5px solid #F310FD' : '1px solid #E2E8F0',
-                        color: paymentMethod === 'manual' ? '#F310FD' : '#64748B',
-                        boxShadow: paymentMethod === 'manual' ? '0 4px 12px rgba(243,16,253,0.08)' : 'none',
-                      }}
-                    >
-                      📋 Manual Deposit
-                    </button>
-                  </div>
+                  {selectedPackage.name && selectedPackage.name.toLowerCase().includes('land') ? (
+                    <div style={{
+                      padding: '12px',
+                      background: 'rgba(245,158,11,0.08)',
+                      border: '1px solid #f59e0b',
+                      borderRadius: '12px',
+                      color: '#d97706',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      textAlign: 'center'
+                    }}>
+                      🇮🇳 Land packages must be deposited using INR manual deposit only.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('metamask')}
+                        style={{
+                          padding: '10px 16px',
+                          borderRadius: '12px',
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer',
+                          background: paymentMethod === 'metamask' ? 'rgba(243,16,253,0.08)' : '#F8FAFC',
+                          border: paymentMethod === 'metamask' ? '1.5px solid #F310FD' : '1px solid #E2E8F0',
+                          color: paymentMethod === 'metamask' ? '#F310FD' : '#64748B',
+                          boxShadow: paymentMethod === 'metamask' ? '0 4px 12px rgba(243,16,253,0.08)' : 'none',
+                        }}
+                      >
+                        🦊 Pay via MetaMask
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('manual')}
+                        style={{
+                          padding: '10px 16px',
+                          borderRadius: '12px',
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer',
+                          background: paymentMethod === 'manual' ? 'rgba(243,16,253,0.08)' : '#F8FAFC',
+                          border: paymentMethod === 'manual' ? '1.5px solid #F310FD' : '1px solid #E2E8F0',
+                          color: paymentMethod === 'manual' ? '#F310FD' : '#64748B',
+                          boxShadow: paymentMethod === 'manual' ? '0 4px 12px rgba(243,16,253,0.08)' : 'none',
+                        }}
+                      >
+                        📋 Manual Deposit
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Amount input & manual pay details */}
@@ -789,45 +810,47 @@ export default function Products() {
                   </div>
 
                   {/* Toggle Split Payment */}
-                  <div style={{
-                    background: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '12px',
-                    padding: '12px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    marginBottom: '4px'
-                  }} onClick={() => setUseWalletBalance(!useWalletBalance)}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Use Wallet Balance (50:50 Split)</div>
-                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-                        Pay 50% from available balance (${(currentUser?.availableBalance || 0).toLocaleString()} USDT) & 50% via USDT
+                  {(!selectedPackage.name || !selectedPackage.name.toLowerCase().includes('land')) && (
+                    <div style={{
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '12px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      marginBottom: '4px'
+                    }} onClick={() => setUseWalletBalance(!useWalletBalance)}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Use Wallet Balance (50:50 Split)</div>
+                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+                          Pay 50% from available balance (${(currentUser?.availableBalance || 0).toLocaleString()} USDT) & 50% via USDT
+                        </div>
+                      </div>
+                      <div style={{
+                        width: '40px',
+                        height: '22px',
+                        borderRadius: '100px',
+                        background: useWalletBalance ? '#F310FD' : '#E2E8F0',
+                        position: 'relative',
+                        transition: 'all 0.2s ease',
+                        padding: '2px'
+                      }}>
+                        <div style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          background: '#FFFFFF',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                          position: 'absolute',
+                          left: useWalletBalance ? '20px' : '2px',
+                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                        }} />
                       </div>
                     </div>
-                    <div style={{
-                      width: '40px',
-                      height: '22px',
-                      borderRadius: '100px',
-                      background: useWalletBalance ? '#F310FD' : '#E2E8F0',
-                      position: 'relative',
-                      transition: 'all 0.2s ease',
-                      padding: '2px'
-                    }}>
-                      <div style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        background: '#FFFFFF',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        position: 'absolute',
-                        left: useWalletBalance ? '20px' : '2px',
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                      }} />
-                    </div>
-                  </div>
+                  )}
 
                   {/* Target User ID Input */}
                   <div>
@@ -937,45 +960,60 @@ export default function Products() {
                     {/* Network Selection */}
                     <div>
                       <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Select Network</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setNetworkType('Bep20')}
-                          style={{
-                            padding: '8px 12px',
-                            borderRadius: '10px',
-                            fontWeight: 700,
-                            fontSize: '11.5px',
-                            transition: 'all 0.2s',
-                            cursor: 'pointer',
-                            background: networkType === 'Bep20' ? 'rgba(245,158,11,0.08)' : '#F8FAFC',
-                            border: networkType === 'Bep20' ? '1.5px solid #d97706' : '1px solid #E2E8F0',
-                            color: networkType === 'Bep20' ? '#d97706' : '#64748B',
-                          }}
-                        >
-                          BEP20 (Binance Smart Chain)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setNetworkType('TRC 20')}
-                          style={{
-                            padding: '8px 12px',
-                            borderRadius: '10px',
-                            fontWeight: 700,
-                            fontSize: '11.5px',
-                            transition: 'all 0.2s',
-                            cursor: 'pointer',
-                            background: networkType === 'TRC 20' ? 'rgba(239,68,68,0.08)' : '#F8FAFC',
-                            border: networkType === 'TRC 20' ? '1.5px solid #dc2626' : '1px solid #E2E8F0',
-                            color: networkType === 'TRC 20' ? '#dc2626' : '#64748B',
-                          }}
-                        >
-                          TRC20 (TRON Network)
-                        </button>
-                      </div>
+                      {selectedPackage.name && selectedPackage.name.toLowerCase().includes('land') ? (
+                        <div style={{
+                          padding: '10px 16px',
+                          borderRadius: '10px',
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          background: 'rgba(34,197,94,0.08)',
+                          border: '1.5px solid #22c55e',
+                          color: '#15803d',
+                          textAlign: 'center'
+                        }}>
+                          🇮🇳 INR (Indian Rupee Bank / UPI Transfer)
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setNetworkType('Bep20')}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: '10px',
+                              fontWeight: 700,
+                              fontSize: '11.5px',
+                              transition: 'all 0.2s',
+                              cursor: 'pointer',
+                              background: networkType === 'Bep20' ? 'rgba(245,158,11,0.08)' : '#F8FAFC',
+                              border: networkType === 'Bep20' ? '1.5px solid #d97706' : '1px solid #E2E8F0',
+                              color: networkType === 'Bep20' ? '#d97706' : '#64748B',
+                            }}
+                          >
+                            BEP20 (Binance Smart Chain)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setNetworkType('TRC 20')}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: '10px',
+                              fontWeight: 700,
+                              fontSize: '11.5px',
+                              transition: 'all 0.2s',
+                              cursor: 'pointer',
+                              background: networkType === 'TRC 20' ? 'rgba(239,68,68,0.08)' : '#F8FAFC',
+                              border: networkType === 'TRC 20' ? '1.5px solid #dc2626' : '1px solid #E2E8F0',
+                              color: networkType === 'TRC 20' ? '#dc2626' : '#64748B',
+                            }}
+                          >
+                            TRC20 (TRON Network)
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Deposit Address Box */}
+                    {/* Deposit Address / Bank Details Box */}
                     <div style={{
                       background: '#F8FAFC',
                       border: '1px solid #E2E8F0',
@@ -985,91 +1023,210 @@ export default function Products() {
                       flexDirection: 'column',
                       gap: '12px'
                     }}>
-                      {/* Address Info & copy */}
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>USDT Deposit Address ({networkType})</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const addr = networkType === 'Bep20' 
-                                ? depositAddresses.depositAddressBep20 
-                                : depositAddresses.depositAddressTrc20;
-                              navigator.clipboard.writeText(addr);
-                              toast.success('Address copied to clipboard!');
-                            }}
-                            style={{
-                              fontSize: '11px',
-                              color: '#F310FD',
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}
-                          >
-                            <Copy size={12} /> Copy
-                          </button>
-                        </div>
-                        <div style={{
-                          fontSize: '13px',
-                          fontFamily: 'monospace',
-                          color: '#0F172A',
-                          background: '#F1F5F9',
-                          border: '1px solid #E2E8F0',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          wordBreak: 'break-all',
-                          userSelect: 'all',
-                          textAlign: 'center'
-                        }}>
-                          {networkType === 'Bep20' 
-                            ? depositAddresses.depositAddressBep20 
-                            : depositAddresses.depositAddressTrc20}
-                        </div>
-                      </div>
+                      {selectedPackage.name && selectedPackage.name.toLowerCase().includes('land') ? (
+                        <>
+                          {/* Bank Transfer Details */}
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>Bank Transfer Details</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(depositAddresses.depositAddressINR || 'CTC Corp Bank - A/C: 1234567890, IFSC: UTIB00001234, Branch: Mumbai');
+                                  toast.success('Bank details copied!');
+                                }}
+                                style={{
+                                  fontSize: '11px',
+                                  color: '#F310FD',
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Copy size={12} /> Copy
+                              </button>
+                            </div>
+                            <div style={{
+                              fontSize: '13px',
+                              color: '#0F172A',
+                              background: '#F1F5F9',
+                              border: '1px solid #E2E8F0',
+                              padding: '10px 12px',
+                              borderRadius: '8px',
+                              fontWeight: 600,
+                              lineHeight: '1.5',
+                              textAlign: 'left'
+                            }}>
+                              {depositAddresses.depositAddressINR || 'CTC Corp Bank - A/C: 1234567890, IFSC: UTIB00001234, Branch: Mumbai'}
+                            </div>
+                          </div>
 
-                      {/* QR Code Container - Centered Row */}
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: '#F1F5F9',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        marginTop: '4px'
-                      }}>
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Scan to Pay</span>
-                        <div style={{ background: '#ffffff', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                          <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${
-                              networkType === 'Bep20' 
-                                ? depositAddresses.depositAddressBep20 
-                                : depositAddresses.depositAddressTrc20
-                            }`} 
-                            alt="QR Code" 
-                            style={{ width: '150px', height: '150px', display: 'block' }}
-                          />
-                        </div>
-                      </div>
+                          {/* UPI ID */}
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>UPI ID</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(depositAddresses.upiIdINR || 'ctc@upi');
+                                  toast.success('UPI ID copied!');
+                                }}
+                                style={{
+                                  fontSize: '11px',
+                                  color: '#F310FD',
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Copy size={12} /> Copy
+                              </button>
+                            </div>
+                            <div style={{
+                              fontSize: '13px',
+                              fontFamily: 'monospace',
+                              color: '#0F172A',
+                              background: '#F1F5F9',
+                              border: '1px solid #E2E8F0',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              wordBreak: 'break-all',
+                              textAlign: 'center',
+                              fontWeight: 700
+                            }}>
+                              {depositAddresses.upiIdINR || 'ctc@upi'}
+                            </div>
+                          </div>
 
-                      <p style={{ fontSize: '10.5px', color: '#64748B', lineHeight: 1.4, margin: 0, textAlign: 'center' }}>
-                        ⚠️ Send only USDT ({networkType}) to this address. Using the wrong network may result in loss.
-                      </p>
+                          {/* Scan UPI QR Code */}
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#F1F5F9',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            marginTop: '4px'
+                          }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Scan UPI QR</span>
+                            <div style={{ background: '#ffffff', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                              <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(depositAddresses.upiIdINR || 'ctc@upi')}`}
+                                alt="UPI QR Code"
+                                style={{ width: '130px', height: '130px', display: 'block' }}
+                              />
+                            </div>
+                          </div>
+
+                          <p style={{ fontSize: '10.5px', color: '#64748B', lineHeight: 1.4, margin: 0, textAlign: 'center' }}>
+                            ⚠️ Send only INR to the bank details or UPI ID above. Send the exact amount corresponding to the package tier.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          {/* Address Info & copy */}
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>USDT Deposit Address ({networkType})</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const addr = networkType === 'Bep20' 
+                                    ? depositAddresses.depositAddressBep20 
+                                    : depositAddresses.depositAddressTrc20;
+                                  navigator.clipboard.writeText(addr);
+                                  toast.success('Address copied to clipboard!');
+                                }}
+                                style={{
+                                  fontSize: '11px',
+                                  color: '#F310FD',
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Copy size={12} /> Copy
+                              </button>
+                            </div>
+                            <div style={{
+                              fontSize: '13px',
+                              fontFamily: 'monospace',
+                              color: '#0F172A',
+                              background: '#F1F5F9',
+                              border: '1px solid #E2E8F0',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              wordBreak: 'break-all',
+                              userSelect: 'all',
+                              textAlign: 'center'
+                            }}>
+                              {networkType === 'Bep20' 
+                                ? depositAddresses.depositAddressBep20 
+                                : depositAddresses.depositAddressTrc20}
+                            </div>
+                          </div>
+
+                          {/* QR Code Container - Centered Row */}
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#F1F5F9',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            marginTop: '4px'
+                          }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Scan to Pay</span>
+                            <div style={{ background: '#ffffff', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                              <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${
+                                  networkType === 'Bep20' 
+                                    ? depositAddresses.depositAddressBep20 
+                                    : depositAddresses.depositAddressTrc20
+                                }`} 
+                                alt="QR Code" 
+                                style={{ width: '150px', height: '150px', display: 'block' }}
+                              />
+                            </div>
+                          </div>
+
+                          <p style={{ fontSize: '10.5px', color: '#64748B', lineHeight: 1.4, margin: 0, textAlign: 'center' }}>
+                            ⚠️ Send only USDT ({networkType}) to this address. Using the wrong network may result in loss.
+                          </p>
+                        </>
+                      )}
                     </div>
 
-                    {/* Sender Wallet Address */}
+                    {/* Sender Wallet Address / Account */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Sender Wallet Address (Optional)</label>
+                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                        {selectedPackage.name && selectedPackage.name.toLowerCase().includes('land') 
+                          ? 'Sender Bank Account No. / UPI ID (Optional)'
+                          : 'Sender Wallet Address (Optional)'}
+                      </label>
                       <input
                         type="text"
                         value={senderAddress}
                         onChange={(e) => setSenderAddress(e.target.value)}
-                        placeholder="Your wallet address from which payment is sent"
+                        placeholder={selectedPackage.name && selectedPackage.name.toLowerCase().includes('land')
+                          ? "Enter account number or UPI ID used for transfer"
+                          : "Your wallet address from which payment is sent"}
                         style={{
                           width: '100%',
                           background: '#FFFFFF',
@@ -1092,13 +1249,17 @@ export default function Products() {
                 {/* TxHash Input */}
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                    Transaction Hash {paymentMethod === 'manual' ? '(Required)' : '(Optional if using MetaMask)'}
+                    {selectedPackage.name && selectedPackage.name.toLowerCase().includes('land')
+                      ? 'UTR / Transaction Reference Number (Required)'
+                      : `Transaction Hash ${paymentMethod === 'manual' ? '(Required)' : '(Optional if using MetaMask)'}`}
                   </label>
                   <input
                     type="text"
                     value={txHash}
                     onChange={(e) => setTxHash(e.target.value)}
-                    placeholder="0x... or TRON transaction ID"
+                    placeholder={selectedPackage.name && selectedPackage.name.toLowerCase().includes('land')
+                      ? "Enter 12-digit UTR or Transaction Reference"
+                      : "0x... or TRON transaction ID"}
                     style={{
                       width: '100%',
                       background: '#FFFFFF',
@@ -1115,9 +1276,11 @@ export default function Products() {
                     onBlur={e => e.target.style.borderColor = '#CBD5E1'}
                   />
                   <p style={{ fontSize: '11px', color: '#64748B', marginTop: '6px', lineHeight: 1.4, marginBottom: 0 }}>
-                    {paymentMethod === 'manual'
-                      ? 'Enter the transaction hash/id of your USDT transfer to submit for verification.'
-                      : 'Enter transaction hash manually if you paid outside of this browser session.'}
+                    {selectedPackage.name && selectedPackage.name.toLowerCase().includes('land')
+                      ? 'Enter the UTR/Reference number of your INR transfer to submit for verification.'
+                      : paymentMethod === 'manual'
+                        ? 'Enter the transaction hash/id of your USDT transfer to submit for verification.'
+                        : 'Enter transaction hash manually if you paid outside of this browser session.'}
                   </p>
                 </div>
 

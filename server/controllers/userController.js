@@ -134,7 +134,9 @@ const getDepositAddresses = async (req, res, next) => {
     res.json({
       depositAddressMetaMask: settings && settings.depositAddressMetaMask ? settings.depositAddressMetaMask : '0x185018c5f26B2cE105e0B80b231178CE5913b621',
       depositAddressBep20: settings && settings.depositAddressBep20 ? settings.depositAddressBep20 : '0x8e4143b46eb1e1a6cbd71b5d57da95b985219f0b',
-      depositAddressTrc20: settings && settings.depositAddressTrc20 ? settings.depositAddressTrc20 : 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5'
+      depositAddressTrc20: settings && settings.depositAddressTrc20 ? settings.depositAddressTrc20 : 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5',
+      depositAddressINR: settings && settings.depositAddressINR ? settings.depositAddressINR : 'CTC Corp Bank - A/C: 1234567890, IFSC: UTIB00001234, Branch: Mumbai',
+      upiIdINR: settings && settings.upiIdINR ? settings.upiIdINR : 'ctc@upi'
     });
   } catch (error) {
     next(error);

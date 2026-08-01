@@ -5,7 +5,7 @@ const manualPackageBuySchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   packageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Package', required: true },
   amount: { type: Number, required: true },
-  networkType: { type: String, enum: ['Bep20', 'TRC 20'], required: true },
+  networkType: { type: String, enum: ['Bep20', 'TRC 20', 'INR'], required: true },
   txHash: { type: String, required: true },
   senderAddress: { type: String },
   targetUserId: { type: String },

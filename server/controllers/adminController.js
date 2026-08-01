@@ -294,6 +294,7 @@ const updateTreasurySettings = async (req, res, next) => {
       'withdrawalCooldownHours', 'manualWithdrawalApproval', 'treasuryReserves', 
       'emergencyThreshold', 'announcementImage', 'announcementImages', 'announcementContent',
       'depositAddressMetaMask', 'depositAddressBep20', 'depositAddressTrc20',
+      'depositAddressINR', 'upiIdINR',
       'transparencyProfitsThisWeek', 'transparencyProfitsLastWeek', 'transparencyProfitsLast30Days',
       'transparencyPerformanceOverview', 'transparencyChartData', 'liveTradingFeed'
     ];

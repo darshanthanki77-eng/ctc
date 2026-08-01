@@ -107,8 +107,17 @@ const requestWithdrawal = async (req, res, next) => {
     const Package = require('../models/Package');
 
     const activeUserPkgs = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
-    if (activeUserPkgs.some(up => up.packageId && up.packageId.name === 'Land Security Package')) {
+    if (activeUserPkgs.some(up => up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land'))) {
       hasLandSecurity = true;
+    }
+
+    if (type === 'profit' && hasLandSecurity) {
+      const currentDate = now.getDate();
+      if (currentDate < 1 || currentDate > 5) {
+        return res.status(400).json({
+          message: 'ROI withdrawals for Land package holders are only allowed between the 1st and 5th of every month.'
+        });
+      }
     }
 
     if (type === 'profit' && (isZeroPin || hasLandSecurity)) {

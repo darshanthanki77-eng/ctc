@@ -76,6 +76,10 @@ const Withdrawal = () => {
 
   const selectedBalance = sourceBalances[selectedSourceId] || 0;
 
+  const hasLandPackage = activePackages.some(p => p.packageId && p.packageId.name && p.packageId.name.toLowerCase().includes('land'));
+  const currentDay = new Date().getDate();
+  const isDateAllowed = currentDay >= 1 && currentDay <= 5;
+
   // Regular Claim calculations
   const grossAmount = Number(amount) || 0;
   const withdrawalFee = grossAmount * 0.10;
@@ -100,6 +104,13 @@ const Withdrawal = () => {
   // regular claim submission
   const handleWithdraw = async (e) => {
     e.preventDefault();
+    const hasLandPackage = activePackages.some(p => p.packageId && p.packageId.name && p.packageId.name.toLowerCase().includes('land'));
+    const currentDay = new Date().getDate();
+    const isDateAllowed = currentDay >= 1 && currentDay <= 5;
+    
+    if (hasLandPackage && !isDateAllowed) {
+      return toast.error('ROI withdrawals for Land package holders are only allowed between the 1st and 5th of every month.');
+    }
     if (!amount || amount < 10) return toast.error('Minimum withdrawal is 10');
     if (Number(amount) % 10 !== 0) return toast.error('Withdrawal amount must be a multiple of 10');
     if (Number(amount) > selectedBalance) return toast.error('Amount exceeds selected wallet balance');
@@ -229,6 +240,29 @@ const Withdrawal = () => {
               {!connectedWallet && <span className="badge badge-red">Wallet Disconnected</span>}
             </div>
 
+            {hasLandPackage && (
+              <div style={{
+                padding: '12px',
+                borderRadius: '12px',
+                background: isDateAllowed ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                border: isDateAllowed ? '1px solid #22c55e' : '1px solid #ef4444',
+                color: isDateAllowed ? '#15803d' : '#b91c1c',
+                fontSize: '12px',
+                fontWeight: 700,
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <AlertTriangle size={16} />
+                <span>
+                  {isDateAllowed 
+                    ? '🇮🇳 Land package ROI withdrawals are active (1st to 5th date of the month).' 
+                    : '🇮🇳 Land package ROI withdrawals are only allowed between the 1st and 5th of every month.'}
+                </span>
+              </div>
+            )}
+
             <form onSubmit={handleWithdraw}>
               {/* Select Source Option List (Image 2 style inside form) */}
               <div className="form-group" style={{ marginBottom: 18 }}>
@@ -330,9 +364,18 @@ const Withdrawal = () => {
                 </div>
               </div>
 
-              <button className="btn-primary" type="submit" disabled={loading} style={{ width: '100%' }}>
+              <button 
+                className="btn-primary" 
+                type="submit" 
+                disabled={loading || (hasLandPackage && !isDateAllowed)} 
+                style={{ 
+                  width: '100%',
+                  opacity: (loading || (hasLandPackage && !isDateAllowed)) ? 0.6 : 1,
+                  cursor: (loading || (hasLandPackage && !isDateAllowed)) ? 'not-allowed' : 'pointer'
+                }}
+              >
                 <Wallet size={16} style={{ marginRight: 6 }} />
-                {loading ? 'Processing transfer...' : `Initiate Transfer — $${netPayout.toFixed(2)} USDT net`}
+                {loading ? 'Processing transfer...' : (hasLandPackage && !isDateAllowed) ? 'Withdrawal Closed' : `Initiate Transfer — $${netPayout.toFixed(2)} USDT net`}
               </button>
             </form>
           </div>

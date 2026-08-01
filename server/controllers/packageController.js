@@ -45,6 +45,10 @@ const buyPackage = async (req, res, next) => {
     const pkg = await Package.findById(packageId);
     if (!pkg) return res.status(404).json({ message: 'Package not found' });
 
+    if (pkg.name.toLowerCase().includes('land')) {
+      return res.status(400).json({ message: 'Land package can only be purchased using INR manual deposit.' });
+    }
+
     if (amount < pkg.minAmount || amount > pkg.maxAmount) {
       return res.status(400).json({ message: 'Invalid amount for this package' });
     }
@@ -305,12 +309,23 @@ const buyPackageManual = async (req, res, next) => {
       return res.status(400).json({ message: 'Package ID, amount, transaction hash, and network type are required.' });
     }
 
-    if (!['Bep20', 'TRC 20'].includes(networkType)) {
-      return res.status(400).json({ message: 'Invalid network type. Must be Bep20 or TRC 20.' });
-    }
-
     const pkg = await Package.findById(packageId);
     if (!pkg) return res.status(404).json({ message: 'Package not found' });
+
+    const isLandPkg = pkg.name.toLowerCase().includes('land');
+
+    if (isLandPkg) {
+      if (networkType !== 'INR') {
+        return res.status(400).json({ message: 'Land package deposits must be made in INR only.' });
+      }
+      if (useWalletBalance === true || useWalletBalance === 'true') {
+        return res.status(400).json({ message: 'Wallet balance split is not allowed for Land package.' });
+      }
+    } else {
+      if (!['Bep20', 'TRC 20'].includes(networkType)) {
+        return res.status(400).json({ message: 'Invalid network type. Must be Bep20 or TRC 20.' });
+      }
+    }
 
     const numericAmount = Number(amount);
     if (numericAmount < pkg.minAmount || numericAmount > pkg.maxAmount) {
