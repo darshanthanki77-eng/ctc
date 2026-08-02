@@ -4,6 +4,7 @@ const LevelIncome = require('../models/LevelIncome');
 const Transaction = require('../models/Transaction');
 const { rankBonusMap } = require('../cron/salaryCron');
 const bcrypt = require('bcryptjs');
+const UserPackage = require('../models/UserPackage');
 
 const getUserProfile = async (req, res, next) => {
   try {
@@ -178,7 +179,6 @@ const claimRankBonus = async (req, res, next) => {
     }
 
     // Enforce dynamic cap before payout
-    const UserPackage = require('../models/UserPackage');
     const userPackages = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
     const hasLandSecurity = userPackages.some(up => 
       up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
@@ -195,7 +195,6 @@ const claimRankBonus = async (req, res, next) => {
     user.claimedRankBonuses.push(rank);
 
     // Credit balance
-    const UserPackage = require('../models/UserPackage');
     const activeStakedPkg = await UserPackage.findOne({
       user: user._id,
       status: 'active',
