@@ -706,7 +706,12 @@ export default function Products() {
                     { label: 'Package Tier',    value: selectedPackage.name, bold: true },
                     { label: 'Profit Rate',     value: selectedPackage.name.toLowerCase().includes('referral') ? `${selectedPackage.dailyProfit}%` : `${(selectedPackage.dailyProfit / 2)}% ${selectedPackage.name.toLowerCase().includes('referral') ? 'daily' : 'every 12 hours'}`, color: '#22c55e' },
                     { label: 'Staking Capital', value: `$${Number(investmentAmount || 0).toLocaleString()} USDT`, color: '#F310FD', big: true },
-                    { label: 'Ceiling (4.0×)',  value: `$${(Number(investmentAmount || 0) * 4).toLocaleString()} USDT` },
+                    {
+                      label: selectedPackage.name && selectedPackage.name.toLowerCase().includes('land') ? 'Ceiling (1.0×)' : 'Ceiling (4.0×)',
+                      value: selectedPackage.name && selectedPackage.name.toLowerCase().includes('land')
+                        ? `$${Number(investmentAmount || 0).toLocaleString()} USDT`
+                        : `$${(Number(investmentAmount || 0) * 4).toLocaleString()} USDT`
+                    },
                   ].map((row, i) => (
                     <div key={i} style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',

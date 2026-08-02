@@ -165,8 +165,12 @@ export default function PackageHistory() {
                   const statusLower = (p.status || '').toLowerCase();
                   
                   // Compute dynamic ceiling multiplier
+                  const isLand = p.packageId?.name?.toLowerCase().includes('land') || 
+                                 p.name?.toLowerCase().includes('land') || 
+                                 p.packageId?.name?.toLowerCase().includes('security') || 
+                                 p.name?.toLowerCase().includes('security');
                   const isZeroPin = p.isZeroPin || p.packageId?.isZeroPin;
-                  const multiplier = isZeroPin ? 1 : 4;
+                  const multiplier = (isLand || isZeroPin) ? 1 : 4;
                   const ceilingVal = p.amount * multiplier;
                   
                   const pct = Math.min(100, Math.round((p.totalEarned / ceilingVal) * 100));
