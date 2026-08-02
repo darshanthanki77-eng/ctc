@@ -70,7 +70,11 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
         }
 
         // PRECISION OVERSHOOT PROTECTION FOR LEVEL INCOME
-        const sponsorMultiplier = (sponsorUser.pins === 0) ? 1 : ((sponsorUser.totalTeam > 0) ? 4 : 2);
+        const sponsorPackages = await UserPackage.find({ user: sponsorUser._id, status: 'active' }).populate('packageId');
+        const sponsorHasLandSecurity = sponsorPackages.some(up => 
+          up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
+        );
+        const sponsorMultiplier = sponsorHasLandSecurity ? 1 : ((sponsorUser.pins === 0) ? 1 : ((sponsorUser.totalTeam > 0) ? 4 : 2));
         const sponsorRemainingCap = (sponsorUser.totalInvestment * sponsorMultiplier) - sponsorUser.totalEarning;
 
         if (sponsorRemainingCap <= 0) {
@@ -80,7 +84,7 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
           await AuditLog.create({
             action: 'CAP_COMPLETED',
             userId: sponsorUser._id,
-            details: { reason: '4x cap reached during level income distribution (pre-check)' }
+            details: { reason: `${sponsorMultiplier}x cap reached during level income distribution (pre-check)` }
           });
         } else if (isLevelActive) {
           const percentage = LEVEL_PERCENTAGES[currentLevel - 1];
@@ -126,7 +130,7 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
             sponsorUser.availableBalance += payoutAmount;
           }
 
-          const finalSponsorMultiplier = (sponsorUser.pins === 0) ? 1 : ((sponsorUser.totalTeam > 0) ? 4 : 2);
+          const finalSponsorMultiplier = sponsorHasLandSecurity ? 1 : ((sponsorUser.pins === 0) ? 1 : ((sponsorUser.totalTeam > 0) ? 4 : 2));
           if (capHit || sponsorUser.totalEarning >= sponsorUser.totalInvestment * finalSponsorMultiplier) {
             sponsorUser.isActive = false;
 

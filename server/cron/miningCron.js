@@ -176,7 +176,7 @@ const runMiningCronCycle = async (force = false) => {
     const activePackages = await UserPackage.find({
       status: 'active',
       endDate: { $gt: new Date() }
-    });
+    }).populate('packageId');
 
     console.log(`[CRON] Found ${activePackages.length} active packages to process.`);
     let idx = 0;
@@ -264,7 +264,9 @@ const runMiningCronCycle = async (force = false) => {
 
       // STRICT ACTIVE USER VALIDATION
       const isActive = await isStrictlyActiveUser(user, pkg);
-      const maxCapMultiplier = (pkg.isZeroPin || user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2);
+      const isLand = (pkg.packageId && pkg.packageId.name && pkg.packageId.name.toLowerCase().includes('land')) || 
+                     (pkg.name && pkg.name.toLowerCase().includes('land'));
+      const maxCapMultiplier = isLand ? 1 : ((pkg.isZeroPin || user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2));
       if (!isActive) {
         // Double ensure flags are flipped if they reached cap mathematically but flags aren't updated yet
         if (user && user.totalEarning >= user.totalInvestment * maxCapMultiplier && user.isActive) {

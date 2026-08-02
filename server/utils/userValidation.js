@@ -13,6 +13,9 @@ const isStrictlyActiveUser = async (user, activePackage = null) => {
   if (user.isBlocked || user.isActive === false) return false;
 
   const getMultiplier = (u, p) => {
+    const isLand = (p.packageId && p.packageId.name && p.packageId.name.toLowerCase().includes('land')) || 
+                   (p.name && p.name.toLowerCase().includes('land'));
+    if (isLand) return 1;
     if (p.isZeroPin || u.pins === 0) return 1;
     return (u.totalTeam > 0) ? 4 : 2;
   };
@@ -39,7 +42,7 @@ const isStrictlyActiveUser = async (user, activePackage = null) => {
   }
 
   // 3. If no specific package is provided, check if the user has AT LEAST ONE active, non-expired, non-capped package
-  const activePkgs = await UserPackage.find({ user: user._id, status: 'active' });
+  const activePkgs = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
   if (activePkgs.length === 0) return false;
 
   // Check if user has at least one valid active package

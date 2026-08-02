@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const UserPackage = require('../models/UserPackage');
 
 const getTeamBusiness = async (userId) => {
   let teamSum = 0;
@@ -40,7 +41,11 @@ const runSalaryCron = async () => {
 
     for (let user of eligibleUsers) {
       // Enforce dynamic Earning Cap before processing
-      const multiplier = (user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2);
+      const userPackages = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
+      const hasLandSecurity = userPackages.some(up => 
+        up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
+      );
+      const multiplier = hasLandSecurity ? 1 : ((user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2));
       if (user.totalEarning >= user.totalInvestment * multiplier) {
         user.isActive = false;
         await user.save();
@@ -178,7 +183,11 @@ const pay7thSalary = async () => {
       }
 
       // Check dynamic Earning Cap before payout
-      const multiplier = (user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2);
+      const userPackages = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
+      const hasLandSecurity = userPackages.some(up => 
+        up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
+      );
+      const multiplier = hasLandSecurity ? 1 : ((user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2));
       if (user.totalEarning >= user.totalInvestment * multiplier) {
         user.isActive = false;
         user.qualifiedFor7thSalary = false;
@@ -189,7 +198,6 @@ const pay7thSalary = async () => {
 
       const salaryPayout = salaryMap[user.rank];
       if (salaryPayout) {
-        const UserPackage = require('../models/UserPackage');
         const activeStakedPkg = await UserPackage.findOne({
           user: user._id,
           status: 'active',

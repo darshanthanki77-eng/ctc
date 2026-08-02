@@ -178,7 +178,12 @@ const claimRankBonus = async (req, res, next) => {
     }
 
     // Enforce dynamic cap before payout
-    const multiplier = (user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2);
+    const UserPackage = require('../models/UserPackage');
+    const userPackages = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
+    const hasLandSecurity = userPackages.some(up => 
+      up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
+    );
+    const multiplier = hasLandSecurity ? 1 : ((user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2));
     if (user.totalEarning >= user.totalInvestment * multiplier) {
       user.isActive = false;
       await user.save();

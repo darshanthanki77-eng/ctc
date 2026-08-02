@@ -29,7 +29,9 @@ const Settings = () => {
     announcementContent: '',
     depositAddressMetaMask: '',
     depositAddressBep20: '',
-    depositAddressTrc20: ''
+    depositAddressTrc20: '',
+    depositAddressINR: '',
+    upiIdINR: ''
   });
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -284,6 +286,30 @@ const Settings = () => {
                   onChange={handleChange}
                   placeholder="T..."
                   className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">INR Deposit Bank Details (Land Package)</label>
+                <input
+                  type="text"
+                  name="depositAddressINR"
+                  value={settings.depositAddressINR || ''}
+                  onChange={handleChange}
+                  placeholder="e.g. Bank Name - A/C: ..., IFSC: ..., Branch: ..."
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">INR Deposit UPI ID (Land Package)</label>
+                <input
+                  type="text"
+                  name="upiIdINR"
+                  value={settings.upiIdINR || ''}
+                  onChange={handleChange}
+                  placeholder="e.g. ctc@upi"
+                  className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
                 />
               </div>
             </div>
