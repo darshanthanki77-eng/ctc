@@ -76,6 +76,22 @@ const isStrictlyActiveUser = async (user, activePackage = null) => {
   return hasValidPackage;
 };
 
+const getUserPromoInvestment = async (userId) => {
+  const activePkgs = await UserPackage.find({ user: userId, status: 'active' }).populate('packageId');
+  let total = 0;
+  for (const pkg of activePkgs) {
+    const isLand = (pkg.packageId && pkg.packageId.name && pkg.packageId.name.toLowerCase().includes('land')) || 
+                   (pkg.name && pkg.name.toLowerCase().includes('land'));
+    if (isLand) {
+      total += pkg.amount * 0.5;
+    } else {
+      total += pkg.amount;
+    }
+  }
+  return total;
+};
+
 module.exports = {
-  isStrictlyActiveUser
+  isStrictlyActiveUser,
+  getUserPromoInvestment
 };

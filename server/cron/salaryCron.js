@@ -2,12 +2,14 @@ const cron = require('node-cron');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const UserPackage = require('../models/UserPackage');
+const { getUserPromoInvestment } = require('../utils/userValidation');
 
 const getTeamBusiness = async (userId) => {
   let teamSum = 0;
   const directs = await User.find({ sponsor: userId, isActive: true, pins: { $gt: 0 } });
   for (let dir of directs) {
-    teamSum += (dir.totalInvestment || 0) + await getTeamBusiness(dir._id);
+    const promoInvestment = await getUserPromoInvestment(dir._id);
+    teamSum += promoInvestment + await getTeamBusiness(dir._id);
   }
   return teamSum;
 };
@@ -16,7 +18,8 @@ const getLegBusinesses = async (userId) => {
   const directs = await User.find({ sponsor: userId, isActive: true, pins: { $gt: 0 } });
   const legBusinesses = [];
   for (let dir of directs) {
-    const legBusiness = await getTeamBusiness(dir._id);
+    const promoInvestment = await getUserPromoInvestment(dir._id);
+    const legBusiness = promoInvestment + await getTeamBusiness(dir._id);
     legBusinesses.push({ id: dir._id, business: legBusiness });
   }
   return legBusinesses;
@@ -58,7 +61,10 @@ const runSalaryCron = async () => {
       let newRank = user.rank || 'None';
       if (!user.isRankManuallySet) {
         const directs = await User.find({ sponsor: user._id, isActive: true, pins: { $gt: 0 } });
-        const directBusiness = directs.reduce((sum, u) => sum + (u.totalInvestment || 0), 0);
+        let directBusiness = 0;
+        for (const dir of directs) {
+          directBusiness += await getUserPromoInvestment(dir._id);
+        }
 
         const legBusinesses = await getLegBusinesses(user._id);
         const totalTeamBusiness = legBusinesses.reduce((acc, leg) => acc + leg.business, 0);

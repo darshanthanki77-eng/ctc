@@ -5,6 +5,7 @@ const Transaction = require('../models/Transaction');
 const { rankBonusMap } = require('../cron/salaryCron');
 const bcrypt = require('bcryptjs');
 const UserPackage = require('../models/UserPackage');
+const { getUserPromoInvestment } = require('../utils/userValidation');
 
 const getUserProfile = async (req, res, next) => {
   try {
@@ -20,7 +21,15 @@ const getUserProfile = async (req, res, next) => {
 
 const getTeam = async (req, res, next) => {
   try {
-    const directTeam = await User.find({ sponsor: req.user._id }).select('-password');
+    const directTeamRaw = await User.find({ sponsor: req.user._id }).select('-password');
+    const directTeam = [];
+    for (const member of directTeamRaw) {
+      const promoInvestment = await getUserPromoInvestment(member._id);
+      directTeam.push({
+        ...member.toObject(),
+        totalInvestment: promoInvestment
+      });
+    }
     
     let levels = [];
     let currentLevelMembers = directTeam;
@@ -34,7 +43,16 @@ const getTeam = async (req, res, next) => {
       });
 
       const memberIds = currentLevelMembers.map(m => m._id);
-      currentLevelMembers = await User.find({ sponsor: { $in: memberIds } }).select('-password');
+      const nextLevelMembersRaw = await User.find({ sponsor: { $in: memberIds } }).select('-password');
+      const nextLevelMembers = [];
+      for (const member of nextLevelMembersRaw) {
+        const promoInvestment = await getUserPromoInvestment(member._id);
+        nextLevelMembers.push({
+          ...member.toObject(),
+          totalInvestment: promoInvestment
+        });
+      }
+      currentLevelMembers = nextLevelMembers;
       currentLevel++;
     }
 
