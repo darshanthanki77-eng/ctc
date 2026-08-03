@@ -197,5 +197,7 @@ userSchema.pre('save', function () {
   }
 });
 
+userSchema.index({ sponsor: 1 });
+
 const User = mongoose.model('User', userSchema);
 module.exports = User;

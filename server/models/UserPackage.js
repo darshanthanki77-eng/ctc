@@ -23,4 +23,6 @@
     autoCompounding: { type: Boolean, default: false }
   }, { timestamps: true });
 
+  userPackageSchema.index({ user: 1 });
+
   module.exports = mongoose.model('UserPackage', userPackageSchema);

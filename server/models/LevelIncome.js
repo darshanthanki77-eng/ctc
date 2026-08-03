@@ -11,4 +11,7 @@ const levelIncomeSchema = new mongoose.Schema({
   status: { type: String, default: 'credited' }
 }, { timestamps: true });
 
+levelIncomeSchema.index({ user: 1 });
+levelIncomeSchema.index({ fromUser: 1 });
+
 module.exports = mongoose.model('LevelIncome', levelIncomeSchema);

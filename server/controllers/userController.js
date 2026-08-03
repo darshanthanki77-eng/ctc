@@ -19,17 +19,36 @@ const getUserProfile = async (req, res, next) => {
   }
 };
 
+const getPromoInvestmentsForUsers = async (userIds) => {
+  if (!userIds || userIds.length === 0) return {};
+  const activePkgs = await UserPackage.find({ user: { $in: userIds }, status: 'active' }).populate('packageId');
+  const investmentMap = {};
+  
+  for (const id of userIds) {
+    investmentMap[id.toString()] = 0;
+  }
+  
+  for (const pkg of activePkgs) {
+    const userIdStr = pkg.user.toString();
+    const isLand = (pkg.packageId && pkg.packageId.name && pkg.packageId.name.toLowerCase().includes('land')) || 
+                   (pkg.name && pkg.name.toLowerCase().includes('land'));
+    const amount = pkg.amount || 0;
+    const value = isLand ? (amount * 0.5) : amount;
+    investmentMap[userIdStr] = (investmentMap[userIdStr] || 0) + value;
+  }
+  return investmentMap;
+};
+
 const getTeam = async (req, res, next) => {
   try {
     const directTeamRaw = await User.find({ sponsor: req.user._id }).select('-password');
-    const directTeam = [];
-    for (const member of directTeamRaw) {
-      const promoInvestment = await getUserPromoInvestment(member._id);
-      directTeam.push({
-        ...member.toObject(),
-        totalInvestment: promoInvestment
-      });
-    }
+    const directTeamIds = directTeamRaw.map(m => m._id);
+    const directInvestments = await getPromoInvestmentsForUsers(directTeamIds);
+    
+    const directTeam = directTeamRaw.map(member => ({
+      ...member.toObject(),
+      totalInvestment: directInvestments[member._id.toString()] || 0
+    }));
     
     let levels = [];
     let currentLevelMembers = directTeam;
@@ -44,14 +63,15 @@ const getTeam = async (req, res, next) => {
 
       const memberIds = currentLevelMembers.map(m => m._id);
       const nextLevelMembersRaw = await User.find({ sponsor: { $in: memberIds } }).select('-password');
-      const nextLevelMembers = [];
-      for (const member of nextLevelMembersRaw) {
-        const promoInvestment = await getUserPromoInvestment(member._id);
-        nextLevelMembers.push({
-          ...member.toObject(),
-          totalInvestment: promoInvestment
-        });
-      }
+      
+      const nextLevelIds = nextLevelMembersRaw.map(m => m._id);
+      const nextInvestments = await getPromoInvestmentsForUsers(nextLevelIds);
+      
+      const nextLevelMembers = nextLevelMembersRaw.map(member => ({
+        ...member.toObject(),
+        totalInvestment: nextInvestments[member._id.toString()] || 0
+      }));
+      
       currentLevelMembers = nextLevelMembers;
       currentLevel++;
     }

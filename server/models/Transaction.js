@@ -15,4 +15,6 @@ const transactionSchema = new mongoose.Schema({
   walletAddress: { type: String }
 }, { timestamps: true });
 
+transactionSchema.index({ user: 1 });
+
 module.exports = mongoose.model('Transaction', transactionSchema);

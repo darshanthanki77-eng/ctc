@@ -11,4 +11,6 @@ const referralIncomeSchema = new mongoose.Schema({
   level: { type: Number, default: 1 }
 }, { timestamps: true });
 
+referralIncomeSchema.index({ user: 1 });
+
 module.exports = mongoose.model('ReferralIncome', referralIncomeSchema);

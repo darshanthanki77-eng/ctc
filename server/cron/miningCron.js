@@ -126,7 +126,7 @@ const runMiningCronCycle = async (force = false) => {
               stakingEndDate: { $gt: new Date() }
             });
 
-            let releaseAmount = expiredPkg.compoundingBalance;
+            let releaseAmount = Math.max(0, expiredPkg.compoundingBalance - expiredPkg.amount);
             if (!otherActiveStaked) {
               // No other active staked package. Release lockedStakingIncome as well!
               const lockedAmt = u.lockedStakingIncome || 0;
@@ -150,10 +150,10 @@ const runMiningCronCycle = async (force = false) => {
               action: 'STAKING_RELEASE',
               userId: u._id,
               packageId: expiredPkg._id,
-              amount: expiredPkg.compoundingBalance,
-              details: { reason: 'Staking duration completed', duration: expiredPkg.stakingDuration }
+              amount: releaseAmount,
+              details: { reason: 'Staking duration completed', duration: expiredPkg.stakingDuration, originalPrincipal: expiredPkg.amount }
             });
-            console.log(`[CRON] Released staked package ${expiredPkg._id} of ${expiredPkg.compoundingBalance} to user ${u.userId}`);
+            console.log(`[CRON] Released staked package ${expiredPkg._id} ROI of ${releaseAmount} to user ${u.userId}`);
             
             // Mark as staking released
             expiredPkg.isStakingReleased = true;
