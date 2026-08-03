@@ -14,13 +14,9 @@ async function run() {
   console.log(`Dry Run Mode: ${dryRun ? 'ON (No database changes will be saved)' : 'OFF (Changes WILL be written)'}`);
   console.log(`=========================================\n`);
 
-  if (!process.env.MONGO_URI) {
-    console.error('❌ MONGO_URI environment variable is missing.');
-    process.exit(1);
-  }
-
-  await mongoose.connect(process.env.MONGO_URI);
-  console.log('✅ Connected to MongoDB');
+  const dbURI = 'mongodb+srv://fanqie:fanqie123@cluster0.f8acy45.mongodb.net/CTC';
+  await mongoose.connect(dbURI);
+  console.log('✅ Connected to MongoDB Production Database');
 
   // Find all packages that completed staking and released principal (isStaked=true, isStakingReleased=true)
   const completedStakingPackages = await UserPackage.find({
@@ -70,7 +66,7 @@ async function run() {
 
       // 3. Create AuditLog entry
       await AuditLog.create({
-        action: 'STAKING_PRINCIPAL_CORRECTION',
+        action: 'ADMIN_ACTION',
         userId: user._id,
         packageId: pkg._id,
         amount: deductAmount,

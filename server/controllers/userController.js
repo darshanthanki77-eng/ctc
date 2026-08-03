@@ -5,6 +5,7 @@ const Transaction = require('../models/Transaction');
 const { rankBonusMap } = require('../cron/salaryCron');
 const bcrypt = require('bcryptjs');
 const UserPackage = require('../models/UserPackage');
+const Package = require('../models/Package');
 const { getUserPromoInvestment } = require('../utils/userValidation');
 
 const getUserProfile = async (req, res, next) => {
