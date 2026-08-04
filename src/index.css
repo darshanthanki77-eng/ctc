@@ -1702,3 +1702,33 @@ input[type="range"]::-webkit-slider-thumb {
     border-top: 1px dashed rgba(0, 0, 0, 0.08);
   }
 }
+
+/* ============================================================
+   TAWK.TO WIDGET POSITION OVERRIDES
+   ============================================================ */
+/* Target all possible containers and iframes tawk.to might generate */
+#tawkchat-iframe-container,
+div.widget-visible,
+div[class*="tawk-minified"],
+div[id*="tawk"],
+div[class*="tawk-card"],
+iframe[src*="tawk.to"],
+iframe[title*="chat widget"],
+iframe[id^="tawk"] {
+  left: 20px !important;
+  right: auto !important;
+}
+
+@media (min-width: 1024px) {
+  #tawkchat-iframe-container,
+  div.widget-visible,
+  div[class*="tawk-minified"],
+  div[id*="tawk"],
+  div[class*="tawk-card"],
+  iframe[src*="tawk.to"],
+  iframe[title*="chat widget"],
+  iframe[id^="tawk"] {
+    left: 260px !important; /* 240px sidebar + 20px gap */
+    right: auto !important;
+  }
+}
