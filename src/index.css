@@ -1715,6 +1715,9 @@ div[class*="tawk-card"],
 iframe[src*="tawk.to"],
 iframe[title*="chat widget"],
 iframe[id^="tawk"] {
+  position: fixed !important;
+  bottom: 20px !important;
   right: 20px !important;
   left: auto !important;
+  z-index: 999999 !important;
 }
