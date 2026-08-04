@@ -36,18 +36,16 @@ const Layout = () => {
     window.Tawk_API = window.Tawk_API || {};
     window.Tawk_LoadStart = new Date();
 
-    // Configure widget positioning (bottom-left)
-    // For desktop: offset by sidebar width (240px) + 20px gap to avoid overlap
-    // For mobile: standard 20px gap from left
+    // Configure widget positioning (bottom-right)
     window.Tawk_API.customStyle = {
       visibility: {
         desktop: {
-          position: 'bl',
-          xOffset: 260,
+          position: 'br',
+          xOffset: 20,
           yOffset: 20
         },
         mobile: {
-          position: 'bl',
+          position: 'br',
           xOffset: 20,
           yOffset: 20
         }
