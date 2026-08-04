@@ -31,6 +31,63 @@ const Layout = () => {
     dispatch(fetchProfile());
   }, [dispatch]);
 
+  useEffect(() => {
+    // Initialize Tawk_API and Tawk_LoadStart
+    window.Tawk_API = window.Tawk_API || {};
+    window.Tawk_LoadStart = new Date();
+
+    // Configure widget positioning (bottom-left)
+    // For desktop: offset by sidebar width (240px) + 20px gap to avoid overlap
+    // For mobile: standard 20px gap from left
+    window.Tawk_API.customStyle = {
+      visibility: {
+        desktop: {
+          position: 'bl',
+          xOffset: 260,
+          yOffset: 20
+        },
+        mobile: {
+          position: 'bl',
+          xOffset: 20,
+          yOffset: 20
+        }
+      }
+    };
+
+    // Inject Tawk.to script
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = 'https://embed.tawk.to/6a72063506b8551d47ac0bd4/1jv6mgh22';
+    script.charset = 'UTF-8';
+    script.setAttribute('crossorigin', '*');
+    script.id = 'tawk-script';
+
+    document.head.appendChild(script);
+
+    // Cleanup on unmount
+    return () => {
+      const existingScript = document.getElementById('tawk-script');
+      if (existingScript) {
+        existingScript.remove();
+      }
+
+      if (window.Tawk_API && typeof window.Tawk_API.hideWidget === 'function') {
+        try {
+          window.Tawk_API.hideWidget();
+        } catch (e) {
+          console.error('Error hiding Tawk widget:', e);
+        }
+      }
+
+      // Remove any Tawk.to iframes or wrapper elements from the DOM
+      const tawkElements = document.querySelectorAll('iframe[src*="tawk.to"], div[id^="tawk"]');
+      tawkElements.forEach(el => el.remove());
+
+      delete window.Tawk_API;
+      delete window.Tawk_LoadStart;
+    };
+  }, []);
+
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   const getPageTitle = () => {
