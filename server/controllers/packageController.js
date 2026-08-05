@@ -6,6 +6,18 @@ const AuditLog = require('../models/AuditLog');
 const ManualPackageBuy = require('../models/ManualPackageBuy');
 const { verifyTransaction } = require('../services/blockchainService');
 const { distributeDirectReferral } = require('../services/referralService');
+const { sendAdminDepositNotification } = require('../services/emailService');
+
+const isDownline = async (buyerId, targetUserObjId) => {
+  let currentUser = await User.findById(targetUserObjId);
+  while (currentUser && currentUser.sponsor) {
+    if (currentUser.sponsor.toString() === buyerId.toString()) {
+      return true;
+    }
+    currentUser = await User.findById(currentUser.sponsor);
+  }
+  return false;
+};
 
 const getAllPackages = async (req, res, next) => {
   try {
@@ -71,6 +83,17 @@ const buyPackage = async (req, res, next) => {
         targetUser = await User.findOne({ userId: cleanTargetId });
         if (!targetUser) {
           return res.status(404).json({ message: `Target User ID ${targetUserId} does not exist.` });
+        }
+
+        // Verify targetUser is in buyer's downline (team)
+        const isMember = await isDownline(buyer._id, targetUser._id);
+        if (!isMember) {
+          return res.status(400).json({ message: 'You can only top up packages for users in your team (downline).' });
+        }
+
+        // Available balance limit of 50% max when topping up others
+        if (isSplit && walletAmount > (amount * 0.5)) {
+          return res.status(400).json({ message: 'Only up to 50% of the package amount can be paid using available balance when topping up other team members.' });
         }
       }
     }
@@ -351,6 +374,17 @@ const buyPackageManual = async (req, res, next) => {
         if (!targetUser) {
           return res.status(404).json({ message: `Target User ID ${targetUserId} does not exist.` });
         }
+
+        // Verify targetUser is in buyer's downline (team)
+        const isMember = await isDownline(buyer._id, targetUser._id);
+        if (!isMember) {
+          return res.status(400).json({ message: 'You can only top up packages for users in your team (downline).' });
+        }
+
+        // Available balance limit of 50% max when topping up others
+        if (isSplit && walletAmount > (numericAmount * 0.5)) {
+          return res.status(400).json({ message: 'Only up to 50% of the package amount can be paid using available balance when topping up other team members.' });
+        }
       }
     }
 
@@ -401,6 +435,9 @@ const buyPackageManual = async (req, res, next) => {
       walletAmountPaid: walletAmount,
       status: 'pending'
     });
+
+    // Notify admin
+    sendAdminDepositNotification(manualRequest, buyer, pkg);
 
     res.status(200).json({
       message: isSplit

@@ -1,14 +1,18 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: true, // true for 465, false for other ports
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '465'),
+  secure: process.env.SMTP_PORT ? process.env.SMTP_PORT === '465' : true,
   auth: {
-    user: process.env.SMTP_USER,
+    user: process.env.SMTP_USER || 'trustx46@gmail.com',
     pass: process.env.SMTP_PASS,
   },
 });
+
+if (!process.env.SMTP_PASS) {
+  console.warn('WARNING: SMTP_PASS is not set in environment variables. Email sending may fail.');
+}
 
 const sendWelcomeEmail = async (email, fullName, userId, password) => {
   const mailOptions = {
@@ -100,8 +104,80 @@ const sendPasswordResetEmail = async (email, fullName, resetUrl) => {
   }
 };
 
+const sendAdminDepositNotification = async (depositRequest, user, pkg) => {
+  const adminEmail = 'trustx46@gmail.com';
+  const mailOptions = {
+    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'trustx46@gmail.com'}>`,
+    to: adminEmail,
+    subject: `⚠️ New Deposit Request - User: ${user.userId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <h2 style="color: #FF9800; text-align: center;">New Deposit/Manual Buy Request</h2>
+        <p>A user has submitted a new manual package purchase (deposit request) that requires admin review.</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Requester User ID:</strong> ${depositRequest.userId}</p>
+          <p><strong>Target User ID:</strong> ${depositRequest.targetUserId || user.userId}</p>
+          <p><strong>Package Name:</strong> ${pkg.name}</p>
+          <p><strong>Amount:</strong> $${depositRequest.amount}</p>
+          <p><strong>Network Type:</strong> ${depositRequest.networkType}</p>
+          <p><strong>Transaction Hash:</strong> <span style="word-break: break-all;">${depositRequest.txHash}</span></p>
+          <p><strong>USDT Amount (100% or 50% split):</strong> $${depositRequest.amount - depositRequest.walletAmountPaid}</p>
+          <p><strong>Wallet Amount Split:</strong> $${depositRequest.walletAmountPaid}</p>
+          <p><strong>Status:</strong> Pending Approval</p>
+        </div>
+        <p>Please log in to the admin panel to approve or reject this request.</p>
+        <br />
+        <p>Best Regards,<br />The CTC Team</p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Admin deposit notification sent successfully to:', adminEmail);
+  } catch (error) {
+    console.error('Error sending admin deposit notification:', error);
+  }
+};
+
+const sendAdminWithdrawalNotification = async (withdrawalRequest, user) => {
+  const adminEmail = 'trustx46@gmail.com';
+  const mailOptions = {
+    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'trustx46@gmail.com'}>`,
+    to: adminEmail,
+    subject: `⚠️ New Withdrawal Request - User: ${user.userId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <h2 style="color: #E91E63; text-align: center;">New Withdrawal Request</h2>
+        <p>A user has submitted a new withdrawal request that requires admin review.</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>User ID:</strong> ${withdrawalRequest.userId}</p>
+          <p><strong>Amount Requested:</strong> $${withdrawalRequest.amount}</p>
+          <p><strong>Deduction Fee (10%):</strong> $${withdrawalRequest.deduction}</p>
+          <p><strong>Final Release Amount:</strong> $${withdrawalRequest.finalAmount}</p>
+          <p><strong>Receiver Wallet Address:</strong> <span style="word-break: break-all;">${withdrawalRequest.walletAddress}</span></p>
+          <p><strong>Withdrawal Type:</strong> ${withdrawalRequest.type}</p>
+          <p><strong>Status:</strong> Pending Approval</p>
+        </div>
+        <p>Please log in to the admin panel to approve or reject this request.</p>
+        <br />
+        <p>Best Regards,<br />The CTC Team</p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Admin withdrawal notification sent successfully to:', adminEmail);
+  } catch (error) {
+    console.error('Error sending admin withdrawal notification:', error);
+  }
+};
+
 module.exports = {
   sendWelcomeEmail,
   sendWithdrawalApprovedEmail,
   sendPasswordResetEmail,
+  sendAdminDepositNotification,
+  sendAdminWithdrawalNotification,
 };

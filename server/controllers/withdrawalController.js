@@ -2,6 +2,7 @@ const Withdrawal = require('../models/Withdrawal');
 const User = require('../models/User');
 const SystemSettings = require('../models/SystemSettings');
 const AuditLog = require('../models/AuditLog');
+const { sendAdminWithdrawalNotification } = require('../services/emailService');
 const activeWithdrawals = new Set();
 
 const requestWithdrawal = async (req, res, next) => {
@@ -200,6 +201,9 @@ const requestWithdrawal = async (req, res, next) => {
     if (io) {
       io.emit('new_withdrawal_request', { user: user.userId, amount: targetAmount });
     }
+
+    // Notify admin
+    sendAdminWithdrawalNotification(withdrawal, user);
 
     res.status(201).json({ message: 'Withdrawal requested successfully', withdrawal });
   } catch (error) {
