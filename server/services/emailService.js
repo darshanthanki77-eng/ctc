@@ -5,8 +5,8 @@ const transporter = nodemailer.createTransport({
   port: parseInt(process.env.SMTP_PORT || '465'),
   secure: process.env.SMTP_PORT ? process.env.SMTP_PORT === '465' : true,
   auth: {
-    user: process.env.SMTP_USER || 'trustx46@gmail.com',
-    pass: process.env.SMTP_PASS,
+    user: process.env.SMTP_USER || 'Sharmakhushbu1977@gmail.com',
+    pass: process.env.SMTP_PASS || 'krjh xjpr kiul gkdc',
   },
 });
 
@@ -16,7 +16,7 @@ if (!process.env.SMTP_PASS) {
 
 const sendWelcomeEmail = async (email, fullName, userId, password) => {
   const mailOptions = {
-    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'trustx46@gmail.com'}>`,
+    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'Sharmakhushbu1977@gmail.com'}>`,
     to: email,
     subject: 'Welcome to CTC - Registration Successful',
     html: `
@@ -46,7 +46,7 @@ const sendWelcomeEmail = async (email, fullName, userId, password) => {
 
 const sendWithdrawalApprovedEmail = async (email, fullName, amount, txHash) => {
   const mailOptions = {
-    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'trustx46@gmail.com'}>`,
+    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'Sharmakhushbu1977@gmail.com'}>`,
     to: email,
     subject: 'Withdrawal Approved - CTC Platform',
     html: `
@@ -76,7 +76,7 @@ const sendWithdrawalApprovedEmail = async (email, fullName, amount, txHash) => {
 
 const sendPasswordResetEmail = async (email, fullName, resetUrl) => {
   const mailOptions = {
-    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'trustx46@gmail.com'}>`,
+    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'Sharmakhushbu1977@gmail.com'}>`,
     to: email,
     subject: 'Password Reset Request - CTC Platform',
     html: `
@@ -105,9 +105,9 @@ const sendPasswordResetEmail = async (email, fullName, resetUrl) => {
 };
 
 const sendAdminDepositNotification = async (depositRequest, user, pkg) => {
-  const adminEmail = 'trustx46@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'Sharmakhushbu1977@gmail.com';
   const mailOptions = {
-    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'trustx46@gmail.com'}>`,
+    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'Sharmakhushbu1977@gmail.com'}>`,
     to: adminEmail,
     subject: `⚠️ New Deposit Request - User: ${user.userId}`,
     html: `
@@ -141,9 +141,9 @@ const sendAdminDepositNotification = async (depositRequest, user, pkg) => {
 };
 
 const sendAdminWithdrawalNotification = async (withdrawalRequest, user) => {
-  const adminEmail = 'trustx46@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'Sharmakhushbu1977@gmail.com';
   const mailOptions = {
-    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'trustx46@gmail.com'}>`,
+    from: `"CTC Platform" <${process.env.FROM_EMAIL || 'Sharmakhushbu1977@gmail.com'}>`,
     to: adminEmail,
     subject: `⚠️ New Withdrawal Request - User: ${user.userId}`,
     html: `

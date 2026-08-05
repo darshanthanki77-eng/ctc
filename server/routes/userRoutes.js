@@ -10,7 +10,8 @@ const {
   getDepositAddresses,
   claimRankBonus,
   getDashboardSettings,
-  getTreeChildren
+  getTreeChildren,
+  lookupUserByUserId
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
@@ -27,5 +28,6 @@ router.route('/announcement').get(protect, getAnnouncement);
 router.route('/deposit-addresses').get(protect, getDepositAddresses);
 router.route('/claim-bonus').post(protect, claimRankBonus);
 router.route('/dashboard-settings').get(protect, getDashboardSettings);
+router.route('/lookup-user/:userId').get(protect, lookupUserByUserId);
 module.exports = router;
 

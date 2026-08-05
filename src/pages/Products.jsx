@@ -57,6 +57,10 @@ export default function Products() {
     depositAddressTrc20: 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5'
   });
 
+  const [targetUserName, setTargetUserName] = useState('');
+  const [targetUserLoading, setTargetUserLoading] = useState(false);
+  const [targetUserError, setTargetUserError] = useState('');
+
   const currentUser = profile || user;
   const balance = currentUser?.availableBalance || 0;
 
@@ -72,6 +76,37 @@ export default function Products() {
     };
     fetchDepositAddresses();
   }, []);
+
+  // Lookup target user name by ID
+  useEffect(() => {
+    if (!targetUserId.trim()) {
+      setTargetUserName('');
+      setTargetUserError('');
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setTargetUserLoading(true);
+      setTargetUserError('');
+      try {
+        const response = await api.get(`/user/lookup-user/${targetUserId.trim()}`);
+        if (response.data && response.data.fullName) {
+          setTargetUserName(response.data.fullName);
+        } else {
+          setTargetUserName('');
+          setTargetUserError('User ID not found');
+        }
+      } catch (error) {
+        console.error(error);
+        setTargetUserName('');
+        setTargetUserError('User ID not found');
+      } finally {
+        setTargetUserLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [targetUserId]);
 
   // Fetch Packages
   useEffect(() => {
@@ -125,6 +160,10 @@ export default function Products() {
 
   const handleCloseModal = () => {
     setSelectedPackage(null);
+    setTargetUserId('');
+    setTargetUserName('');
+    setTargetUserLoading(false);
+    setTargetUserError('');
     // Restore background scroll
     document.body.style.overflow = '';
   };
@@ -252,6 +291,8 @@ export default function Products() {
         dispatch(fetchProfile());
         setSelectedPackage(null);
         setTargetUserId('');
+        setTargetUserName('');
+        setTargetUserError('');
         setUseWalletBalance(false);
       } else {
         throw new Error("Transaction failed on-chain");
@@ -295,6 +336,8 @@ export default function Products() {
       setTxHash('');
       setSenderAddress('');
       setTargetUserId('');
+      setTargetUserName('');
+      setTargetUserError('');
       setUseWalletBalance(false);
     } catch (error) {
       console.error(error);
@@ -880,6 +923,21 @@ export default function Products() {
                       onFocus={e => e.target.style.borderColor = '#F310FD'}
                       onBlur={e => e.target.style.borderColor = '#CBD5E1'}
                     />
+                    {targetUserLoading && (
+                      <span style={{ display: 'block', fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
+                        ⏳ Verifying user ID...
+                      </span>
+                    )}
+                    {targetUserName && !targetUserLoading && (
+                      <span style={{ display: 'block', fontSize: '12.5px', color: '#16a34a', fontWeight: 600, marginTop: '4px' }}>
+                        ✅ Beneficiary: {targetUserName}
+                      </span>
+                    )}
+                    {targetUserError && !targetUserLoading && (
+                      <span style={{ display: 'block', fontSize: '12.5px', color: '#ef4444', fontWeight: 600, marginTop: '4px' }}>
+                        ❌ {targetUserError}
+                      </span>
+                    )}
                   </div>
 
                   {/* Investment Amount Input */}

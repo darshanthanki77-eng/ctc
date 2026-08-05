@@ -326,5 +326,32 @@ const getTreeChildren = async (req, res, next) => {
   }
 };
 
-module.exports = { getUserProfile, getTeam, getMiningHistory, getLevelIncomeHistory, updateUserProfile, changePassword, getAnnouncement, getDepositAddresses, claimRankBonus, getDashboardSettings, getTreeChildren };
+const lookupUserByUserId = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findOne({ userId }).select('fullName userId _id');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getUserProfile,
+  getTeam,
+  getMiningHistory,
+  getLevelIncomeHistory,
+  updateUserProfile,
+  changePassword,
+  getAnnouncement,
+  getDepositAddresses,
+  claimRankBonus,
+  getDashboardSettings,
+  getTreeChildren,
+  lookupUserByUserId
+};
+
 

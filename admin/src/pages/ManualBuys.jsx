@@ -254,16 +254,48 @@ const ManualBuys = () => {
                   </div>
 
                   {/* Purchase details */}
-                  <div className="bg-[#161B2A]/30 border border-gray-800/80 rounded-2xl p-4 grid grid-cols-2 gap-4 text-center mb-6">
+                  <div className="bg-[#161B2A]/30 border border-gray-800/80 rounded-2xl p-4 grid grid-cols-2 gap-4 text-center mb-4">
                     <div className="border-r border-gray-800/50">
                       <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Package Requested</span>
                       <span className="text-sm font-extrabold text-[#FF00FF]">{r.packageId?.name || 'Standard Package'}</span>
                     </div>
                     <div>
-                      <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Amount Sent</span>
-                      <span className="text-sm font-extrabold text-[#00C6FF]">${Number(r.amount).toLocaleString()} USD</span>
+                      <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Total Amount</span>
+                      <span className="text-sm font-extrabold text-white">${Number(r.amount).toLocaleString()} USD</span>
                     </div>
                   </div>
+
+                  {/* Split payment breakdown if wallet was used */}
+                  {r.walletAmountPaid > 0 && (
+                    <div className="bg-[#161B2A]/20 border border-gray-800/40 rounded-2xl p-3 mb-4 space-y-1.5 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Paid from Wallet:</span>
+                        <span className="text-amber-500 font-bold">${Number(r.walletAmountPaid).toLocaleString()} USD</span>
+                      </div>
+                      <div className="flex justify-between border-t border-gray-800/30 pt-1.5">
+                        <span className="text-gray-400">USDT Sent:</span>
+                        <span className="text-[#00C6FF] font-bold">${Number(r.amount - r.walletAmountPaid).toLocaleString()} USD</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Target user information if bought on behalf of someone else */}
+                  {r.targetUserId && r.targetUserId !== r.userId && (
+                    <div className="bg-purple-950/20 border border-purple-500/20 rounded-2xl p-3 mb-4 text-[11px] space-y-1">
+                      <span className="text-purple-400 font-bold block mb-1">Purchased For (Downline):</span>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Target User ID:</span>
+                        <span className="text-white font-mono font-semibold">{r.targetUserId}</span>
+                      </div>
+                      {r.targetUser && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Target Name:</span>
+                          <span className="text-white font-semibold">{r.targetUser.fullName}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
 
                   {/* Transaction Details */}
                   <div className="space-y-3 text-xs border-t border-gray-800/30 pt-4 mb-6">

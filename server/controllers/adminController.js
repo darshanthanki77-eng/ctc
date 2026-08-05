@@ -1121,6 +1121,7 @@ const getAllManualBuys = async (req, res, next) => {
   try {
     const requests = await ManualPackageBuy.find()
       .populate('user', 'email fullName userId')
+      .populate('targetUser', 'email fullName userId')
       .populate('packageId')
       .sort({ createdAt: -1 });
     res.json(requests);
