@@ -70,11 +70,8 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
         }
 
         // PRECISION OVERSHOOT PROTECTION FOR LEVEL INCOME
-        const sponsorPackages = await UserPackage.find({ user: sponsorUser._id, status: 'active' }).populate('packageId');
-        const sponsorHasLandSecurity = sponsorPackages.some(up => 
-          up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
-        );
-        const sponsorMultiplier = sponsorHasLandSecurity ? 1 : ((sponsorUser.pins === 0) ? 1 : ((sponsorUser.totalTeam > 0) ? 4 : 2));
+        const { getUserMultiplier } = require('../utils/userValidation');
+        const sponsorMultiplier = await getUserMultiplier(sponsorUser);
         const sponsorRemainingCap = (sponsorUser.totalInvestment * sponsorMultiplier) - sponsorUser.totalEarning;
 
         if (sponsorRemainingCap <= 0) {
@@ -130,7 +127,7 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
             sponsorUser.availableBalance += payoutAmount;
           }
 
-          const finalSponsorMultiplier = sponsorHasLandSecurity ? 1 : ((sponsorUser.pins === 0) ? 1 : ((sponsorUser.totalTeam > 0) ? 4 : 2));
+          const finalSponsorMultiplier = await getUserMultiplier(sponsorUser);
           if (capHit || sponsorUser.totalEarning >= sponsorUser.totalInvestment * finalSponsorMultiplier) {
             sponsorUser.isActive = false;
 

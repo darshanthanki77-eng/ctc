@@ -14,7 +14,17 @@ const getUserProfile = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json(user);
+    const { getUserMultiplier, checkIsNetworker } = require('../utils/userValidation');
+    const multiplier = await getUserMultiplier(user);
+    const isNetworker = await checkIsNetworker(user._id);
+
+    const responseData = {
+      ...user.toObject(),
+      multiplier,
+      isNetworker
+    };
+
+    res.json(responseData);
   } catch (error) {
     next(error);
   }
@@ -218,11 +228,8 @@ const claimRankBonus = async (req, res, next) => {
     }
 
     // Enforce dynamic cap before payout
-    const userPackages = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
-    const hasLandSecurity = userPackages.some(up => 
-      up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
-    );
-    const multiplier = hasLandSecurity ? 1 : ((user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2));
+    const { getUserMultiplier } = require('../utils/userValidation');
+    const multiplier = await getUserMultiplier(user);
     if (user.totalEarning >= user.totalInvestment * multiplier) {
       user.isActive = false;
       await user.save();

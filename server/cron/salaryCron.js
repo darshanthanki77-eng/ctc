@@ -44,11 +44,8 @@ const runSalaryCron = async () => {
 
     for (let user of eligibleUsers) {
       // Enforce dynamic Earning Cap before processing
-      const userPackages = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
-      const hasLandSecurity = userPackages.some(up => 
-        up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
-      );
-      const multiplier = hasLandSecurity ? 1 : ((user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2));
+      const { getUserMultiplier } = require('../utils/userValidation');
+      const multiplier = await getUserMultiplier(user);
       if (user.totalEarning >= user.totalInvestment * multiplier) {
         user.isActive = false;
         await user.save();
@@ -189,11 +186,8 @@ const pay7thSalary = async () => {
       }
 
       // Check dynamic Earning Cap before payout
-      const userPackages = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
-      const hasLandSecurity = userPackages.some(up => 
-        up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
-      );
-      const multiplier = hasLandSecurity ? 1 : ((user.pins === 0) ? 1 : ((user.totalTeam > 0) ? 4 : 2));
+      const { getUserMultiplier } = require('../utils/userValidation');
+      const multiplier = await getUserMultiplier(user);
       if (user.totalEarning >= user.totalInvestment * multiplier) {
         user.isActive = false;
         user.qualifiedFor7thSalary = false;

@@ -183,9 +183,43 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.pre('save', function () {
+userSchema.pre('save', async function () {
   if (this.isModified('totalEarning') || this.isModified('totalInvestment')) {
-    if (this.totalInvestment > 0 && this.totalEarning >= this.totalInvestment * 2) {
+    let multiplier = 3;
+    try {
+      const UserPackage = mongoose.model('UserPackage');
+      const userPackages = await UserPackage.find({ user: this._id, status: 'active' }).populate('packageId');
+      const hasLandSecurity = userPackages.some(up => 
+        up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
+      );
+      let isZeroPin = this.pins === 0 || userPackages.some(up => up.isZeroPin);
+      
+      if (hasLandSecurity || isZeroPin) {
+        multiplier = 1;
+      } else {
+        const userMaxPkgAmount = Math.max(...userPackages.map(p => p.amount), 0);
+        const directs = await mongoose.model('User').find({ sponsor: this._id });
+        if (directs.length >= 2) {
+          const directsActivePkgs = await UserPackage.find({
+            user: { $in: directs.map(d => d._id) },
+            status: 'active'
+          });
+          const qualifiedDirects = new Set();
+          for (const pkg of directsActivePkgs) {
+            if (pkg.amount >= userMaxPkgAmount) {
+              qualifiedDirects.add(pkg.user.toString());
+            }
+          }
+          if (qualifiedDirects.size >= 2) {
+            multiplier = 4;
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error in User pre-save multiplier check:", err);
+    }
+
+    if (this.totalInvestment > 0 && this.totalEarning >= this.totalInvestment * multiplier) {
       if (!this.reached2xAt) {
         this.reached2xAt = new Date();
       }

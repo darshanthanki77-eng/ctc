@@ -1,6 +1,72 @@
 const UserPackage = require('../models/UserPackage');
 
 /**
+ * Checks if a user qualifies as a networker:
+ * Has at least 2 direct referrals whose active package amount is same or above the user's max active package amount.
+ * @param {string} userId - The user ID
+ * @returns {Promise<boolean>}
+ */
+const checkIsNetworker = async (userId) => {
+  const User = require('../models/User');
+
+  // Find the user's active packages
+  const userActivePkgs = await UserPackage.find({ user: userId, status: 'active' });
+  if (userActivePkgs.length === 0) return false;
+
+  // User's own max active package size to compare against
+  const userMaxPkgAmount = Math.max(...userActivePkgs.map(p => p.amount), 0);
+
+  // Find direct referrals of this user
+  const directs = await User.find({ sponsor: userId });
+  if (directs.length < 2) return false;
+
+  // Find active packages of these directs
+  const directsActivePkgs = await UserPackage.find({
+    user: { $in: directs.map(d => d._id) },
+    status: 'active'
+  });
+
+  // Count how many unique direct referrals have an active package >= userMaxPkgAmount
+  const qualifiedReferrals = new Set();
+  for (const pkg of directsActivePkgs) {
+    if (pkg.amount >= userMaxPkgAmount) {
+      qualifiedReferrals.add(pkg.user.toString());
+    }
+  }
+
+  return qualifiedReferrals.size >= 2;
+};
+
+/**
+ * Calculates the dynamic cap multiplier for a user (1x, 3x, or 4x).
+ * @param {Object} user - The User document
+ * @param {Object} [activePackage=null] - Optional pre-fetched active package
+ * @returns {Promise<number>}
+ */
+const getUserMultiplier = async (user, activePackage = null) => {
+  let hasLandSecurity = false;
+  let isZeroPin = user.pins === 0;
+
+  if (activePackage) {
+    hasLandSecurity = (activePackage.packageId && activePackage.packageId.name && activePackage.packageId.name.toLowerCase().includes('land')) || 
+                      (activePackage.name && activePackage.name.toLowerCase().includes('land'));
+    if (activePackage.isZeroPin) isZeroPin = true;
+  } else {
+    const userPackages = await UserPackage.find({ user: user._id, status: 'active' }).populate('packageId');
+    hasLandSecurity = userPackages.some(up => 
+      up.packageId && up.packageId.name && up.packageId.name.toLowerCase().includes('land')
+    );
+    if (userPackages.some(up => up.isZeroPin)) isZeroPin = true;
+  }
+
+  if (hasLandSecurity) return 1;
+  if (isZeroPin) return 1;
+
+  const isNet = await checkIsNetworker(user._id);
+  return isNet ? 4 : 3;
+};
+
+/**
  * Validates if a user is truly ACTIVE based on strict production rules.
  * @param {Object} user - The User document
  * @param {Object} [activePackage=null] - Optional pre-fetched active package
@@ -12,17 +78,9 @@ const isStrictlyActiveUser = async (user, activePackage = null) => {
   // 1. Account not blocked/suspended
   if (user.isBlocked || user.isActive === false) return false;
 
-  const getMultiplier = (u, p) => {
-    const isLand = (p.packageId && p.packageId.name && p.packageId.name.toLowerCase().includes('land')) || 
-                   (p.name && p.name.toLowerCase().includes('land'));
-    if (isLand) return 1;
-    if (p.isZeroPin || u.pins === 0) return 1;
-    return (u.totalTeam > 0) ? 4 : 2;
-  };
-
   // 2. If a specific package is provided, evaluate that package
   if (activePackage) {
-    const multiplier = getMultiplier(user, activePackage);
+    const multiplier = await getUserMultiplier(user, activePackage);
     
     // Global cap check using this package's multiplier
     if (user.totalInvestment && user.totalInvestment > 0) {
@@ -48,7 +106,7 @@ const isStrictlyActiveUser = async (user, activePackage = null) => {
   // Check if user has at least one valid active package
   let hasValidPackage = false;
   for (const pkg of activePkgs) {
-    const multiplier = getMultiplier(user, pkg);
+    const multiplier = await getUserMultiplier(user, pkg);
     
     // Check global cap
     if (user.totalInvestment && user.totalInvestment > 0) {
@@ -93,5 +151,8 @@ const getUserPromoInvestment = async (userId) => {
 
 module.exports = {
   isStrictlyActiveUser,
-  getUserPromoInvestment
+  getUserPromoInvestment,
+  checkIsNetworker,
+  getUserMultiplier
 };
+

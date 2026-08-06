@@ -365,7 +365,7 @@ export default function Dashboard() {
               p.packageId?.name?.toLowerCase().includes('land') || 
               p.packageId?.name?.toLowerCase().includes('security')
             );
-            const capMultiplier = hasLandSecurity ? 1 : 4;
+            const capMultiplier = currentUser?.multiplier || (hasLandSecurity ? 1 : 3);
             const capLimit = (currentUser?.totalInvestment || 0) * capMultiplier;
 
             const totalWithdrawnAmount = withdrawals
@@ -384,7 +384,7 @@ export default function Dashboard() {
               <>
                 <div>
                   <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {hasLandSecurity ? 'Total Withdrawn (1x Cap)' : 'Qualifying Earnings (4x Cap)'}
+                    {hasLandSecurity ? 'Total Withdrawn (1x Cap)' : `Qualifying Earnings (${capMultiplier}x Cap)`}
                   </span>
                   <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--near-black)', display: 'block', marginTop: 4 }}>
                     ${usedCapping.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -396,7 +396,7 @@ export default function Dashboard() {
 
                 <div>
                   <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {hasLandSecurity ? '1x Capping Pending' : '4x Capping Pending'}
+                    {hasLandSecurity ? '1x Capping Pending' : `${capMultiplier}x Capping Pending`}
                   </span>
                   <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--pink)', display: 'block', marginTop: 4 }}>
                     ${pendingCapping.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -415,7 +415,7 @@ export default function Dashboard() {
             p.packageId?.name?.toLowerCase().includes('land') || 
             p.packageId?.name?.toLowerCase().includes('security')
           );
-          const capMultiplier = hasLandSecurity ? 1 : 4;
+          const capMultiplier = currentUser?.multiplier || (hasLandSecurity ? 1 : 3);
           const capLimit = (currentUser?.totalInvestment || 0) * capMultiplier;
 
           const totalWithdrawnAmount = withdrawals
@@ -433,7 +433,7 @@ export default function Dashboard() {
             <div style={{ marginTop: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginBottom: 6 }}>
                 <span>
-                  {hasLandSecurity ? 'CAPPING PROGRESS (1X WITHDRAWALS)' : 'CAPPING PROGRESS (4X ROI & LEVEL COMMISSION)'}
+                  {hasLandSecurity ? 'CAPPING PROGRESS (1X WITHDRAWALS)' : `CAPPING PROGRESS (${capMultiplier}X ROI & LEVEL COMMISSION)`}
                 </span>
                 <span>
                   {cappingPercentage.toFixed(1)}%

@@ -51,9 +51,11 @@ const requestWithdrawal = async (req, res, next) => {
       }
     }
 
-    // Option 2: 2x Direct Referral Condition (Must refer 1 NEW ACTIVE member AFTER reaching 2x)
-    if (user.totalEarning >= user.totalInvestment * 2 && user.reached2xAt) {
-      // Find at least 1 direct referral registered and active AFTER the 2x cap was reached with at least $100 investment
+    // Option 2: Direct Referral Condition (Must refer 1 NEW ACTIVE member AFTER reaching their limit)
+    const { getUserMultiplier } = require('../utils/userValidation');
+    const multiplier = await getUserMultiplier(user);
+    if (user.totalEarning >= user.totalInvestment * multiplier && user.reached2xAt) {
+      // Find at least 1 direct referral registered and active AFTER the cap was reached with at least $100 investment
       const newActiveDirect = await User.findOne({
         sponsor: user._id,
         isActive: true,
@@ -62,7 +64,7 @@ const requestWithdrawal = async (req, res, next) => {
       });
 
       if (!newActiveDirect) {
-        return res.status(400).json({ message: 'Compulsory to have at least 1 new active direct referral (with a $100+ package) after receiving 2x of your investment to withdraw.' });
+        return res.status(400).json({ message: `Compulsory to have at least 1 new active direct referral (with a $100+ package) after receiving ${multiplier}x of your investment to withdraw.` });
       }
     }
     
