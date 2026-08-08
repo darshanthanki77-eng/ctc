@@ -55,10 +55,12 @@ const PackageHistory = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  const [paymentFilter, setPaymentFilter] = useState('all'); // all, Crypto, INR
+
   // Reset page when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, packageFilter, startDate, endDate]);
+  }, [searchTerm, statusFilter, packageFilter, startDate, endDate, paymentFilter]);
 
   const fetchPurchases = async () => {
     try {
@@ -173,8 +175,10 @@ const PackageHistory = () => {
     } else if (startDate || endDate) {
       matchesDate = false;
     }
+ 
+    const matchesPayment = paymentFilter === 'all' || p.paymentMethod === paymentFilter || (!p.paymentMethod && paymentFilter === 'Crypto');
 
-    return matchesSearch && matchesStatus && matchesPackage && matchesDate;
+    return matchesSearch && matchesStatus && matchesPackage && matchesDate && matchesPayment;
   });
 
   // Pagination calculation
@@ -329,6 +333,24 @@ const PackageHistory = () => {
                     }`}
                 >
                   {status === 'no_package' ? 'No Purchase' : status}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Payment Method</span>
+            <div className="flex bg-[#161B2A]/50 border border-gray-800 rounded-xl p-1 flex-wrap gap-1">
+              {['all', 'Crypto', 'INR'].map((method) => (
+                <button
+                  key={method}
+                  onClick={() => setPaymentFilter(method)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${paymentFilter === method
+                      ? 'bg-[#A020F0]/10 text-[#FF00FF] border border-[#A020F0]/20'
+                      : 'text-gray-400 hover:text-white border border-transparent'
+                    }`}
+                >
+                  {method === 'all' ? 'All' : method}
                 </button>
               ))}
             </div>
