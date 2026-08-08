@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CreditCard, Check, X, Search, Copy, CheckCheck, Send } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
+import { exportToCSV, exportToPDF } from '../utils/exportUtils';
 
 const Withdrawals = () => {
   const [withdrawals, setWithdrawals] = useState([]);
@@ -29,6 +30,38 @@ const Withdrawals = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterType, filterStatus]);
+
+  const handleExportExcel = () => {
+    const dataToExport = filteredWithdrawals.map((w, index) => ({
+      'S.No': index + 1,
+      'User ID': w.userId || '',
+      'Amount': w.amount || 0,
+      'Deduction Fee': w.deduction || 0,
+      'Final Payout Amount': w.finalAmount || 0,
+      'Currency': w.currency || 'USDT',
+      'Wallet Address / Destination': w.walletAddress || '',
+      'INR Payment Details': w.inrPaymentDetails || '',
+      'Type': w.type || 'profit',
+      'Status': w.status || 'pending',
+      'Approved At': w.approvedAt ? new Date(w.approvedAt).toLocaleString() : '',
+      'Transaction Hash': w.txHash || ''
+    }));
+    exportToCSV(dataToExport, 'Withdrawals_History.csv');
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['User ID', 'Amount', 'Fee', 'Net Amount', 'Currency', 'Wallet / Details', 'Status'];
+    const rows = filteredWithdrawals.map(w => [
+      w.userId || '',
+      w.amount || 0,
+      w.deduction || 0,
+      w.finalAmount || 0,
+      w.currency || 'USDT',
+      w.currency === 'INR' ? (w.inrPaymentDetails || 'INR Transfer') : (w.walletAddress || ''),
+      w.status || 'pending'
+    ]);
+    exportToPDF('Withdrawal Requests List', headers, rows);
+  };
 
   const fetchWithdrawals = async () => {
     try {
@@ -121,6 +154,20 @@ const Withdrawals = () => {
               className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0]"
             />
           </div>
+
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase transition-all active:scale-95 shrink-0"
+          >
+            Export Excel
+          </button>
+
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold uppercase transition-all active:scale-95 shrink-0"
+          >
+            Export PDF
+          </button>
         </div>
 
         {/* Filter controls row */}
@@ -227,30 +274,32 @@ const Withdrawals = () => {
                   <div className="bg-[#161B2A]/30 border border-gray-800 rounded-2xl p-4 grid grid-cols-3 gap-2 text-center mb-6">
                     <div>
                       <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Requested</span>
-                      <span className="text-sm font-extrabold text-white">${Number(w.amount).toFixed(2)}</span>
+                      <span className="text-sm font-extrabold text-white">{w.currency === 'INR' ? '₹' : '$'}{Number(w.amount).toFixed(2)}</span>
                     </div>
                     <div>
                       <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Fee ({isSos ? '20%' : '10%'})</span>
-                      <span className="text-sm font-extrabold text-red-400">${Number(w.amount - netAmount).toFixed(2)}</span>
+                      <span className="text-sm font-extrabold text-red-400">{w.currency === 'INR' ? '₹' : '$'}{Number(w.amount - netAmount).toFixed(2)}</span>
                     </div>
                     <div>
                       <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Net Payable</span>
-                      <span className="text-sm font-extrabold text-[#00C6FF]">${Number(netAmount).toFixed(2)}</span>
+                      <span className="text-sm font-extrabold text-[#00C6FF]">{w.currency === 'INR' ? '₹' : '$'}{Number(netAmount).toFixed(2)}</span>
                     </div>
                   </div>
 
                   {/* Recipient Details */}
                   <div className="space-y-2.5 text-xs border-t border-gray-800/30 pt-4 mb-6">
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-gray-400">Withdrawal Destination Address</span>
+                      <span className="text-gray-400">{w.currency === 'INR' ? 'INR Payout Details' : 'Withdrawal Destination Address'}</span>
                       <div className="flex items-center gap-2 bg-gray-800/50 border border-gray-700/30 rounded-xl px-3 py-2">
-                        <span className="font-mono text-white text-[11px] break-all flex-1 select-all leading-relaxed">{w.walletAddress}</span>
+                        <span className="font-mono text-white text-[11px] break-all flex-1 select-all leading-relaxed">
+                          {w.currency === 'INR' ? w.inrPaymentDetails : w.walletAddress}
+                        </span>
                         <button
-                          onClick={() => handleCopyAddress(w.walletAddress)}
+                          onClick={() => handleCopyAddress(w.currency === 'INR' ? w.inrPaymentDetails : w.walletAddress)}
                           title="Copy address"
                           className="shrink-0 text-gray-400 hover:text-[#00FF99] transition-colors"
                         >
-                          {copiedAddress === w.walletAddress ? <CheckCheck size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
+                          {copiedAddress === (w.currency === 'INR' ? w.inrPaymentDetails : w.walletAddress) ? <CheckCheck size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
                         </button>
                       </div>
                     </div>

@@ -13,11 +13,13 @@ const requestWithdrawal = async (req, res, next) => {
   activeWithdrawals.add(userIdStr);
 
   try {
-    const { amount, walletAddress, withdrawalPin, type = 'profit', userPackageId } = req.body;
+    const { amount, walletAddress, withdrawalPin, type = 'profit', userPackageId, currency = 'USDT', inrPaymentDetails } = req.body;
     const user = await User.findById(req.user._id);
 
+    const isINR = currency === 'INR';
+
     // 1. Wallet Address Locking Logic
-    if (!user.withdrawalWallet) {
+    if (!isINR && !user.withdrawalWallet) {
       if (!walletAddress) {
         return res.status(400).json({ message: 'Receiver wallet address is required.' });
       }
@@ -76,8 +78,14 @@ const requestWithdrawal = async (req, res, next) => {
       return res.status(403).json({ message: 'Withdrawals are temporarily paused for treasury protection.' });
     }
 
-    if (amount < settings.minWithdrawalAmount) {
-      return res.status(400).json({ message: `Minimum withdrawal amount is ${settings.minWithdrawalAmount}` });
+    if (isINR) {
+      if (amount < 2000) {
+        return res.status(400).json({ message: 'Minimum withdrawal amount is 2000 INR.' });
+      }
+    } else {
+      if (amount < settings.minWithdrawalAmount) {
+        return res.status(400).json({ message: `Minimum withdrawal amount is ${settings.minWithdrawalAmount}` });
+      }
     }
     
     // 2. User-specific Daily Throttling & Cooldowns
@@ -161,10 +169,17 @@ const requestWithdrawal = async (req, res, next) => {
     const finalAmount = targetAmount - deduction;
 
     if (type === 'profit') {
-      if (user.availableBalance < targetAmount) {
-        return res.status(400).json({ message: 'Insufficient balance' });
+      if (isINR) {
+        if ((user.availableBalanceINR || 0) < targetAmount) {
+          return res.status(400).json({ message: 'Insufficient INR balance' });
+        }
+        user.availableBalanceINR = (user.availableBalanceINR || 0) - targetAmount;
+      } else {
+        if (user.availableBalance < targetAmount) {
+          return res.status(400).json({ message: 'Insufficient balance' });
+        }
+        user.availableBalance -= targetAmount;
       }
-      user.availableBalance -= targetAmount;
     } else if (type === 'principal') {
       const timeElapsed = Date.now() - new Date(userPkg.createdAt).getTime();
       const hoursElapsed = timeElapsed / (1000 * 60 * 60);
@@ -187,7 +202,9 @@ const requestWithdrawal = async (req, res, next) => {
       amount: targetAmount,
       deduction,
       finalAmount,
-      walletAddress: user.withdrawalWallet,
+      walletAddress: isINR ? 'INR Transfer' : user.withdrawalWallet,
+      currency: isINR ? 'INR' : 'USDT',
+      inrPaymentDetails: isINR ? inrPaymentDetails : undefined,
       type,
       status: settings.manualWithdrawalApproval !== false ? 'pending' : 'approved'
     });

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Eye, ShieldAlert, ShieldCheck, Mail, Phone, Calendar, ArrowRight, Copy, Trash2 } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
+import { exportToCSV, exportToPDF } from '../utils/exportUtils';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -20,6 +21,48 @@ const Users = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, startDate, endDate]);
+
+  const handleExportExcel = () => {
+    const dataToExport = filteredUsers.map((user, index) => ({
+      'S.No': index + 1,
+      'User ID': user.userId || '',
+      'Full Name': user.fullName || '',
+      'Email': user.email || '',
+      'Role': user.role || 'user',
+      'Sponsor ID': user.sponsorId || '',
+      'Rank': user.rank || '',
+      'Pins': user.pins ?? 1,
+      'Direct Referrals': user.directTeam || 0,
+      'Total Team': user.totalTeam || 0,
+      'Staked Investment': user.totalInvestment || 0,
+      'Available Balance': user.availableBalance || 0,
+      'Available Balance INR': user.availableBalanceINR || 0,
+      'Copy Trade ROI': user.miningIncome || 0,
+      'Referral Income': user.referralIncome || 0,
+      'Level Income': user.levelIncome || 0,
+      'Promotional Income': user.promotionalIncome || 0,
+      'KYC Verified': user.isKYCVerified ? 'Yes' : 'No',
+      'Active Status': user.isActive ? 'Active' : 'Inactive',
+      'Blocked Status': user.isBlocked ? 'Blocked' : 'No'
+    }));
+    exportToCSV(dataToExport, 'Users_List.csv');
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['User ID', 'Name', 'Email', 'Role', 'Sponsor', 'Staked', 'Balance (USDT)', 'Balance (INR)'];
+    const rows = filteredUsers.map(user => [
+      user.userId || '',
+      user.fullName || '',
+      user.email || '',
+      user.role || 'user',
+      user.sponsorId || '',
+      `$${user.totalInvestment || 0}`,
+      `$${user.availableBalance || 0}`,
+      `₹${user.availableBalanceINR || 0}`
+    ]);
+    exportToPDF('Registered Users List', headers, rows);
+  };
+
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     fullName: '',
@@ -277,6 +320,20 @@ const Users = () => {
               className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#A020F0]"
             />
           </div>
+
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase transition-all active:scale-95 shrink-0"
+          >
+            Export Excel
+          </button>
+
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold uppercase transition-all active:scale-95 shrink-0"
+          >
+            Export PDF
+          </button>
         </div>
       </div>
 

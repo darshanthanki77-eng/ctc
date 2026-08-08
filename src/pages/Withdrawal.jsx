@@ -30,6 +30,8 @@ const Withdrawal = () => {
   const [walletAddress, setWalletAddress] = useState('');
   const [withdrawalPin, setWithdrawalPin] = useState('');
   const [showPin, setShowPin] = useState(false);
+  const [currency, setCurrency] = useState('USDT');
+  const [inrPaymentDetails, setInrPaymentDetails] = useState('');
 
   // SOS Form states
   const [selectedStakeId, setSelectedStakeId] = useState('');
@@ -68,7 +70,7 @@ const Withdrawal = () => {
 
   // 1. Regular Claim balances mapping
   const sourceBalances = {
-    balance: currentUser?.availableBalance || 0,
+    balance: currency === 'INR' ? (currentUser?.availableBalanceINR || 0) : (currentUser?.availableBalance || 0),
     mining: currentUser?.miningIncome || 0,
     level: currentUser?.levelIncome || 0,
     promotional: currentUser?.promotionalIncome || 0
@@ -107,14 +109,22 @@ const Withdrawal = () => {
     const hasLandPackage = activePackages.some(p => p.packageId && p.packageId.name && p.packageId.name.toLowerCase().includes('land'));
     const currentDay = new Date().getDate();
     const isDateAllowed = currentDay >= 1 && currentDay <= 5;
+    const isINR = currency === 'INR';
     
     if (hasLandPackage && !isDateAllowed) {
       return toast.error('ROI withdrawals for Land package holders are only allowed between the 1st and 5th of every month.');
     }
-    if (!amount || amount < 10) return toast.error('Minimum withdrawal is 10');
-    if (Number(amount) % 10 !== 0) return toast.error('Withdrawal amount must be a multiple of 10');
+
+    if (isINR) {
+      if (!amount || Number(amount) < 2000) return toast.error('Minimum withdrawal in INR is 2000');
+      if (!inrPaymentDetails) return toast.error('Please enter your Bank Details or UPI ID for payment');
+    } else {
+      if (!amount || Number(amount) < 10) return toast.error('Minimum withdrawal is 10');
+      if (Number(amount) % 10 !== 0) return toast.error('Withdrawal amount must be a multiple of 10');
+      if (!walletAddress) return toast.error('Please enter your receiving wallet address');
+    }
+
     if (Number(amount) > selectedBalance) return toast.error('Amount exceeds selected wallet balance');
-    if (!walletAddress) return toast.error('Please enter your receiving wallet address');
     if (!withdrawalPin || !/^\d{6}$/.test(withdrawalPin)) {
       return toast.error('Please enter a 6-digit withdrawal PIN');
     }
@@ -123,7 +133,9 @@ const Withdrawal = () => {
     try {
       const payload = { 
         amount: Number(amount), 
-        walletAddress,
+        walletAddress: isINR ? 'INR Transfer' : walletAddress,
+        inrPaymentDetails: isINR ? inrPaymentDetails : undefined,
+        currency,
         withdrawalPin,
         type: 'profit', // maps to profit withdrawal in controller
       };
@@ -131,6 +143,7 @@ const Withdrawal = () => {
       toast.success('Withdrawal requested successfully!');
       setAmount('');
       setWithdrawalPin('');
+      if (isINR) setInrPaymentDetails('');
       dispatch(fetchProfile());
       fetchHistory();
     } catch (error) {
@@ -264,6 +277,32 @@ const Withdrawal = () => {
             )}
 
             <form onSubmit={handleWithdraw}>
+              {/* Payout Currency Selector */}
+              <div className="form-group" style={{ marginBottom: 18 }}>
+                <label className="form-label">Select Payout Currency</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+                  {['USDT', 'INR'].map(cur => {
+                    const isSel = currency === cur;
+                    return (
+                      <button
+                        key={cur}
+                        type="button"
+                        onClick={() => { setCurrency(cur); setAmount(''); }}
+                        style={{
+                          background: isSel ? 'rgba(34,197,94,0.05)' : 'white',
+                          border: isSel ? '2px solid #22c55e' : '1px solid rgba(0,0,0,0.08)',
+                          borderRadius: 10, padding: '10px 12px', cursor: 'pointer', textAlign: 'center',
+                          fontWeight: 700, fontSize: 13, color: isSel ? '#166534' : 'var(--muted)',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {cur === 'INR' ? 'INR (Indian Rupee 🇮🇳)' : 'USDT (Crypto 🪙)'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Select Source Option List (Image 2 style inside form) */}
               <div className="form-group" style={{ marginBottom: 18 }}>
                 <label className="form-label">Select Withdrawal Source</label>
@@ -288,7 +327,7 @@ const Withdrawal = () => {
                           {src.name}
                         </p>
                         <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 800, color: 'var(--near-black)', fontFamily: 'monospace' }}>
-                          ${src.value.toFixed(2)}
+                          {currency === 'INR' ? '₹' : '$'}{src.value.toFixed(2)}
                         </p>
                       </button>
                     );
@@ -299,16 +338,16 @@ const Withdrawal = () => {
               {/* Amount Input */}
               <div className="form-group" style={{ marginBottom: 18 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <label className="form-label">Claim Amount (USDT)</label>
+                  <label className="form-label">Claim Amount ({currency})</label>
                   <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                    Wallet Available: <strong style={{ color: 'var(--near-black)', fontFamily: 'monospace' }}>${selectedBalance.toFixed(2)}</strong>
+                    Wallet Available: <strong style={{ color: 'var(--near-black)', fontFamily: 'monospace' }}>{currency === 'INR' ? '₹' : '$'}{selectedBalance.toFixed(2)}</strong>
                   </span>
                 </div>
                 <div className="form-input-prefix" style={{ position: 'relative' }}>
-                  <span className="form-prefix-label">$</span>
+                  <span className="form-prefix-label">{currency === 'INR' ? '₹' : '$'}</span>
                   <input 
                     type="number" 
-                    step="10" 
+                    step={currency === 'INR' ? '100' : '10'} 
                     value={amount}
                     onChange={e => setAmount(e.target.value)} 
                     placeholder="0.00" 
@@ -322,25 +361,42 @@ const Withdrawal = () => {
                 </div>
               </div>
 
-              {/* BEP-20 Wallet Address */}
-              <div className="form-group" style={{ marginBottom: 18 }}>
-                <label className="form-label">BEP-20 Wallet Address</label>
-                <input 
-                  className="form-input" 
-                  type="text"
-                  placeholder="0x..."
-                  value={walletAddress}
-                  onChange={(e) => setWalletAddress(e.target.value)}
-                  readOnly={!!currentUser?.withdrawalWallet}
-                  style={{ fontFamily: 'monospace', fontSize: 12, color: currentUser?.withdrawalWallet ? 'var(--muted)' : 'var(--near-black)' }} 
-                />
-                <span style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
-                  {currentUser?.withdrawalWallet 
-                    ? "★ Address locked. Contact support to modify." 
-                    : "★ Address will lock to your account upon first withdrawal."
-                  }
-                </span>
-              </div>
+              {/* Address / Bank Details Input */}
+              {currency === 'INR' ? (
+                <div className="form-group" style={{ marginBottom: 18 }}>
+                  <label className="form-label">INR Payout Details (UPI ID or Bank Details)</label>
+                  <textarea 
+                    className="form-input" 
+                    rows="3"
+                    placeholder="Enter UPI ID (e.g. name@upi) OR Bank A/C details (A/C Number, IFSC Code, Bank Name, Holder Name)"
+                    value={inrPaymentDetails}
+                    onChange={(e) => setInrPaymentDetails(e.target.value)}
+                    style={{ padding: '10px 12px', fontSize: 12.5, borderRadius: '8px', border: '1px solid rgba(0,0,0,0.15)', width: '100%', outline: 'none' }} 
+                  />
+                  <span style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                    ★ Double check your payment details. Incorrect details may result in lost funds.
+                  </span>
+                </div>
+              ) : (
+                <div className="form-group" style={{ marginBottom: 18 }}>
+                  <label className="form-label">BEP-20 Wallet Address</label>
+                  <input 
+                    className="form-input" 
+                    type="text"
+                    placeholder="0x..."
+                    value={walletAddress}
+                    onChange={(e) => setWalletAddress(e.target.value)}
+                    readOnly={!!currentUser?.withdrawalWallet}
+                    style={{ fontFamily: 'monospace', fontSize: 12, color: currentUser?.withdrawalWallet ? 'var(--muted)' : 'var(--near-black)' }} 
+                  />
+                  <span style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                    {currentUser?.withdrawalWallet 
+                      ? "★ Address locked. Contact support to modify." 
+                      : "★ Address will lock to your account upon first withdrawal."
+                    }
+                  </span>
+                </div>
+              )}
 
               {/* 6-Digit PIN */}
               <div className="form-group" style={{ marginBottom: 20 }}>

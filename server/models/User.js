@@ -103,6 +103,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    availableBalanceINR: {
+      type: Number,
+      default: 0,
+    },
     referralIncome: {
       type: Number,
       default: 0,

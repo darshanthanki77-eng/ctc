@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { History, Search, Download, Calendar, Filter } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
+import { exportToPDF } from '../utils/exportUtils';
 
 const Transactions = () => {
   const [txs, setTxs] = useState([]);
@@ -37,7 +38,7 @@ const Transactions = () => {
     if (txs.length === 0) return toast.info('No transactions to export');
     
     const headers = ['Date', 'User ID', 'Type', 'Description', 'Amount', 'Status', 'TxHash'];
-    const rows = txs.map(t => [
+    const rows = filteredTxs.map(t => [
       new Date(t.createdAt).toLocaleString(),
       t.userId || 'System',
       t.type,
@@ -47,17 +48,30 @@ const Transactions = () => {
       t.txHash || ''
     ]);
 
-    let csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(","))].join("\n");
-      
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(","))].join("\n");
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", `CTC_System_Transactions_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     toast.success('CSV Export initiated!');
+  };
+
+  const handleExportPDF = () => {
+    if (txs.length === 0) return toast.info('No transactions to export');
+    const headers = ['Date', 'User ID', 'Type', 'Description', 'Amount', 'Status'];
+    const rows = filteredTxs.map(t => [
+      new Date(t.createdAt).toLocaleString(),
+      t.userId || 'System',
+      t.type,
+      t.description || '',
+      `$${t.amount || 0}`,
+      t.status
+    ]);
+    exportToPDF('Unified Transaction Logs', headers, rows);
   };
 
   const filteredTxs = Array.isArray(txs) ? txs.filter((t) => {
@@ -91,13 +105,18 @@ const Transactions = () => {
           <p className="text-xs text-gray-500 mt-1">Timeline auditing across deposits, ROI mining payouts, MLM commissions, and cancellations</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-          {/* CSV Export Button */}
+          {/* Export Buttons */}
           <button
             onClick={handleExportCSV}
-            className="flex items-center justify-center gap-1.5 bg-[#161B2A] border border-gray-800 hover:border-gray-600 hover:bg-[#161B2A] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+            className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 shrink-0"
           >
-            <Download size={14} />
-            Export CSV
+            Export Excel
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 shrink-0"
+          >
+            Export PDF
           </button>
 
           {/* Type Filter Select */}

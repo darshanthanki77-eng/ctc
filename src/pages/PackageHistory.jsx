@@ -146,6 +146,7 @@ export default function PackageHistory() {
                   <th>Package ID</th>
                   <th>Name</th>
                   <th>Amount (USDT)</th>
+                  <th>Payment</th>
                   <th>Date Activated</th>
                   <th>ROI Earned</th>
                   <th>Ceiling</th>
@@ -157,7 +158,7 @@ export default function PackageHistory() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: 48, color: 'var(--muted)' }}>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: 48, color: 'var(--muted)' }}>
                       No packages found matching this filter state.
                     </td>
                   </tr>
@@ -214,6 +215,22 @@ export default function PackageHistory() {
                       {/* Amount */}
                       <td style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--near-black)' }}>
                         ${p.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+
+                      {/* Payment Method */}
+                      <td>
+                        <span style={{
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: 'white',
+                          background: p.paymentMethod === 'INR' ? '#16a34a' : '#7c3aed',
+                          display: 'inline-block'
+                        }}>
+                          {p.paymentMethod === 'INR' ? 'INR' : 'Crypto'}
+                        </span>
                       </td>
 
                       {/* Date */}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, Coins, TrendingUp, Users, RefreshCw, Layers, Plus, X, Copy } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
+import { exportToCSV, exportToPDF } from '../utils/exportUtils';
 
 const PackageHistory = () => {
   const [purchases, setPurchases] = useState([]);
@@ -14,6 +15,38 @@ const PackageHistory = () => {
   const [assignForm, setAssignForm] = useState({ userId: '', packageId: '', amount: '', stakingDuration: 0 });
   const [assigning, setAssigning] = useState(false);
   const [users, setUsers] = useState([]);
+
+  const handleExportExcel = () => {
+    const dataToExport = filteredPurchases.map((p, index) => ({
+      'S.No': index + 1,
+      'User ID': p.userId || '',
+      'Full Name': p.user?.fullName || '',
+      'Email': p.user?.email || '',
+      'Package Name': p.packageId?.name || '',
+      'Amount (USDT)': p.amount || 0,
+      'Compounding Balance': p.compoundingBalance || 0,
+      'Daily Profit %': p.dailyProfitPercent || 0,
+      'Total ROI Earned': p.totalEarned || 0,
+      'Payment Method': p.paymentMethod || 'Crypto',
+      'Date Activated': p.startDate ? new Date(p.startDate).toLocaleDateString() : new Date(p.createdAt).toLocaleDateString(),
+      'Status': p.status || ''
+    }));
+    exportToCSV(dataToExport, 'Package_Purchase_History.csv');
+  };
+
+  const handleExportPDF = () => {
+    const headers = ['User ID', 'Name', 'Package', 'Amount', 'Payment', 'Date', 'Status'];
+    const rows = filteredPurchases.map(p => [
+      p.userId || '',
+      p.user?.fullName || '',
+      p.packageId?.name || '',
+      `$${p.amount || 0}`,
+      p.paymentMethod || 'Crypto',
+      p.startDate ? new Date(p.startDate).toLocaleDateString() : new Date(p.createdAt).toLocaleDateString(),
+      p.status || ''
+    ]);
+    exportToPDF('Package Purchase History', headers, rows);
+  };
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -257,6 +290,20 @@ const PackageHistory = () => {
             </button>
 
             <button
+              onClick={handleExportExcel}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] text-white rounded-xl text-xs font-bold uppercase transition-all active:scale-95 shrink-0"
+            >
+              Export Excel
+            </button>
+
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 hover:shadow-[0_0_20px_rgba(244,63,94,0.4)] text-white rounded-xl text-xs font-bold uppercase transition-all active:scale-95 shrink-0"
+            >
+              Export PDF
+            </button>
+
+            <button
               onClick={fetchPurchases}
               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#161B2A] border border-gray-800 text-gray-300 hover:text-white rounded-xl text-xs font-bold uppercase transition-all"
             >
@@ -354,6 +401,7 @@ const PackageHistory = () => {
                     <th className="py-4 px-6">User Details</th>
                     <th className="py-4 px-6">Package Name</th>
                     <th className="py-4 px-6">Principal Amount</th>
+                    <th className="py-4 px-6">Payment Method</th>
                     <th className="py-4 px-6">Compounding Balance</th>
                     <th className="py-4 px-6">Daily ROI Rate</th>
                     <th className="py-4 px-6">Total ROI Earned</th>
@@ -404,6 +452,15 @@ const PackageHistory = () => {
                         </td>
                         <td className="py-4.5 px-6 font-mono font-extrabold text-sm text-white">
                           ${Number(p.amount || 0).toFixed(2)}
+                        </td>
+                        <td className="py-4.5 px-6">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            p.paymentMethod === 'INR'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                          }`}>
+                            {p.paymentMethod || 'Crypto'}
+                          </span>
                         </td>
                         <td className="py-4.5 px-6 font-mono font-bold text-[#00C6FF]">
                           ${Number(p.compoundingBalance || 0).toFixed(2)}

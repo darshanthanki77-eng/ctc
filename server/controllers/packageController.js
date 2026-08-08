@@ -256,6 +256,7 @@ const getUserPackages = async (req, res, next) => {
       status: mb.status === 'pending' ? 'pending' : 'rejected',
       isManual: true,
       networkType: mb.networkType,
+      paymentMethod: mb.networkType === 'INR' ? 'INR' : 'Crypto',
       txHash: mb.txHash,
       rejectionReason: mb.rejectionReason
     }));
@@ -345,8 +346,8 @@ const buyPackageManual = async (req, res, next) => {
         return res.status(400).json({ message: 'Wallet balance split is not allowed for Land package.' });
       }
     } else {
-      if (!['Bep20', 'TRC 20'].includes(networkType)) {
-        return res.status(400).json({ message: 'Invalid network type. Must be Bep20 or TRC 20.' });
+      if (!['Bep20', 'TRC 20', 'INR'].includes(networkType)) {
+        return res.status(400).json({ message: 'Invalid network type. Must be Bep20, TRC 20, or INR.' });
       }
     }
 

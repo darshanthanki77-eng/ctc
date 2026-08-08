@@ -1179,7 +1179,8 @@ const approveManualBuy = async (req, res, next) => {
       isZeroPin: pkg.isZeroPin,
       stakingEnabled: false,
       stakingPeriod: 0,
-      autoCompounding: false
+      autoCompounding: false,
+      paymentMethod: manualRequest.networkType === 'INR' ? 'INR' : 'Crypto'
     });
 
     targetUser.activePackage = pkg._id;

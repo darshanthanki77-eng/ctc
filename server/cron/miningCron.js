@@ -5,6 +5,7 @@ const User = require('../models/User');
 const MiningIncome = require('../models/MiningIncome');
 const CronState = require('../models/CronState');
 const AuditLog = require('../models/AuditLog');
+const SystemSettings = require('../models/SystemSettings');
 const { distributeLevelIncome } = require('../services/levelService');
 const { isStrictlyActiveUser } = require('../utils/userValidation');
 
@@ -87,6 +88,9 @@ const runMiningCronCycle = async (force = false) => {
   const round6 = (num) => Math.round(num * 1000000) / 1000000;
 
   try {
+    const settings = await SystemSettings.findOne() || await SystemSettings.create({});
+    const inrRate = settings.inrExchangeRate || 90;
+
     // Release and complete expired packages
     const activeExpiredPackages = await UserPackage.find({
       status: 'active',
@@ -135,15 +139,21 @@ const runMiningCronCycle = async (force = false) => {
               console.log(`[CRON] Releasing lockedStakingIncome of ${lockedAmt} to user ${u.userId}`);
             }
 
-            u.availableBalance = round6(u.availableBalance + releaseAmount);
+            if (expiredPkg.paymentMethod === 'INR') {
+              const releaseAmountINR = releaseAmount * inrRate;
+              u.availableBalanceINR = round6((u.availableBalanceINR || 0) + releaseAmountINR);
+            } else {
+              u.availableBalance = round6(u.availableBalance + releaseAmount);
+            }
             await u.save();
 
             await Transaction.create({
               userId: u.userId,
               user: u._id,
               type: 'release',
-              amount: releaseAmount,
-              status: 'success'
+              amount: expiredPkg.paymentMethod === 'INR' ? releaseAmount * inrRate : releaseAmount,
+              status: 'success',
+              description: expiredPkg.paymentMethod === 'INR' ? 'Staking ROI released in INR' : 'Staking ROI released in USDT'
             });
 
             await AuditLog.create({
@@ -232,7 +242,12 @@ const runMiningCronCycle = async (force = false) => {
         }
 
         // 4. Update user available balance
-        user.availableBalance = round6(user.availableBalance + totalRelease);
+        if (pkg.paymentMethod === 'INR') {
+          const totalReleaseINR = totalRelease * inrRate;
+          user.availableBalanceINR = round6((user.availableBalanceINR || 0) + totalReleaseINR);
+        } else {
+          user.availableBalance = round6(user.availableBalance + totalRelease);
+        }
         await user.save();
 
         // 5. Reset package compounding balance to the principal amount (compounding stops)
@@ -247,8 +262,9 @@ const runMiningCronCycle = async (force = false) => {
             userId: user.userId,
             user: user._id,
             type: 'release',
-            amount: totalRelease,
-            status: 'success'
+            amount: pkg.paymentMethod === 'INR' ? totalRelease * inrRate : totalRelease,
+            status: 'success',
+            description: pkg.paymentMethod === 'INR' ? 'Staking ROI released in INR' : 'Staking ROI released in USDT'
           });
         }
 
@@ -345,7 +361,12 @@ const runMiningCronCycle = async (force = false) => {
       user.totalEarning = round6(user.totalEarning + profitAmount); // 100% of profit counts towards the cap!
       
       if (withdrawableAmount > 0 && !isStakingActive) {
-        user.availableBalance = round6(user.availableBalance + withdrawableAmount); // 100% is withdrawable instantly
+        if (pkg.paymentMethod === 'INR') {
+          const withdrawableAmountINR = withdrawableAmount * inrRate;
+          user.availableBalanceINR = round6((user.availableBalanceINR || 0) + withdrawableAmountINR);
+        } else {
+          user.availableBalance = round6(user.availableBalance + withdrawableAmount); // 100% is withdrawable instantly
+        }
       }
  
       pkg.totalEarned = round6(pkg.totalEarned + profitAmount);

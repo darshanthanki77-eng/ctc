@@ -1037,7 +1037,7 @@ export default function Products() {
                           🇮🇳 INR (Indian Rupee Bank / UPI Transfer)
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <button
                             type="button"
                             onClick={() => setNetworkType('Bep20')}
@@ -1072,6 +1072,23 @@ export default function Products() {
                           >
                             TRC20 (TRON Network)
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setNetworkType('INR')}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: '10px',
+                              fontWeight: 700,
+                              fontSize: '11.5px',
+                              transition: 'all 0.2s',
+                              cursor: 'pointer',
+                              background: networkType === 'INR' ? 'rgba(34,197,94,0.08)' : '#F8FAFC',
+                              border: networkType === 'INR' ? '1.5px solid #22c55e' : '1px solid #E2E8F0',
+                              color: networkType === 'INR' ? '#166534' : '#64748B',
+                            }}
+                          >
+                            INR (UPI / Bank)
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1086,7 +1103,7 @@ export default function Products() {
                       flexDirection: 'column',
                       gap: '12px'
                     }}>
-                      {selectedPackage.name && selectedPackage.name.toLowerCase().includes('land') ? (
+                      {networkType === 'INR' ? (
                         <>
                           {/* Bank Transfer Details */}
                           <div>
@@ -1312,7 +1329,7 @@ export default function Products() {
                 {/* TxHash Input */}
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                    {selectedPackage.name && selectedPackage.name.toLowerCase().includes('land')
+                    {networkType === 'INR'
                       ? 'UTR / Transaction Reference Number (Required)'
                       : `Transaction Hash ${paymentMethod === 'manual' ? '(Required)' : '(Optional if using MetaMask)'}`}
                   </label>
@@ -1320,7 +1337,7 @@ export default function Products() {
                     type="text"
                     value={txHash}
                     onChange={(e) => setTxHash(e.target.value)}
-                    placeholder={selectedPackage.name && selectedPackage.name.toLowerCase().includes('land')
+                    placeholder={networkType === 'INR'
                       ? "Enter 12-digit UTR or Transaction Reference"
                       : "0x... or TRON transaction ID"}
                     style={{
@@ -1339,7 +1356,7 @@ export default function Products() {
                     onBlur={e => e.target.style.borderColor = '#CBD5E1'}
                   />
                   <p style={{ fontSize: '11px', color: '#64748B', marginTop: '6px', lineHeight: 1.4, marginBottom: 0 }}>
-                    {selectedPackage.name && selectedPackage.name.toLowerCase().includes('land')
+                    {networkType === 'INR'
                       ? 'Enter the UTR/Reference number of your INR transfer to submit for verification.'
                       : paymentMethod === 'manual'
                         ? 'Enter the transaction hash/id of your USDT transfer to submit for verification.'

@@ -20,7 +20,8 @@
     stakingPeriod: { type: Number, default: 0 },
     stakingStartDate: { type: Date },
     stakingEndDate: { type: Date },
-    autoCompounding: { type: Boolean, default: false }
+    autoCompounding: { type: Boolean, default: false },
+    paymentMethod: { type: String, enum: ['Crypto', 'INR'], default: 'Crypto' }
   }, { timestamps: true });
 
   userPackageSchema.index({ user: 1 });

@@ -30,6 +30,7 @@ const systemSettingsSchema = new mongoose.Schema({
   depositAddressTrc20: { type: String, default: 'TWJjGZJ73Q9x2hWpLRRreaxyvR9Eveoiv5' },
   depositAddressINR: { type: String, default: 'CTC Corp Bank - A/C: 1234567890, IFSC: UTIB00001234, Branch: Mumbai' },
   upiIdINR: { type: String, default: 'ctc@upi' },
+  inrExchangeRate: { type: Number, default: 90 },
   transparencyProfitsThisWeek: { type: String, default: '+0.82%' },
   transparencyProfitsLastWeek: { type: String, default: '+5.28%' },
   transparencyProfitsLast30Days: { type: String, default: '+16.10%' },
