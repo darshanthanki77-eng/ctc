@@ -931,7 +931,7 @@ const updateUser = async (req, res, next) => {
 
 const assignPackage = async (req, res, next) => {
   try {
-    const { userId, packageId, amount, stakingDuration } = req.body;
+    const { userId, packageId, amount, stakingDuration, paymentMethod = 'Crypto' } = req.body;
 
     if (!userId || !packageId || !amount) {
       return res.status(400).json({ message: 'User ID, Package, and Amount are required.' });
@@ -996,7 +996,8 @@ const assignPackage = async (req, res, next) => {
       stakingPeriod: stakingDurationNum,
       stakingStartDate: isStaked ? new Date() : undefined,
       stakingEndDate: isStaked ? new Date(Date.now() + stakingDurationNum * 24 * 60 * 60 * 1000) : undefined,
-      autoCompounding: isStaked
+      autoCompounding: isStaked,
+      paymentMethod: paymentMethod === 'INR' ? 'INR' : 'Crypto'
     });
 
     // Note: user.isActive is NOT set to true here. Admin must manually activate the user ID.
@@ -1024,7 +1025,7 @@ const assignPackage = async (req, res, next) => {
       amount: numericAmount,
       txHash: 'ADMIN_MANUAL_ASSIGN',
       status: 'success',
-      description: `Manual package assignment by Admin: ${pkg.name}`
+      description: `Manual package assignment by Admin: ${pkg.name} (Payment: ${paymentMethod})`
     });
 
     if (user.sponsor) {

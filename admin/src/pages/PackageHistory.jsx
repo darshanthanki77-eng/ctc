@@ -12,7 +12,7 @@ const PackageHistory = () => {
   const [packageFilter, setPackageFilter] = useState('all');
   const [packages, setPackages] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assignForm, setAssignForm] = useState({ userId: '', packageId: '', amount: '', stakingDuration: 0 });
+  const [assignForm, setAssignForm] = useState({ userId: '', packageId: '', amount: '', stakingDuration: 0, paymentMethod: 'Crypto' });
   const [assigning, setAssigning] = useState(false);
   const [users, setUsers] = useState([]);
 
@@ -102,11 +102,12 @@ const PackageHistory = () => {
         userId: assignForm.userId,
         packageId: assignForm.packageId,
         amount: Number(assignForm.amount),
-        stakingDuration: Number(assignForm.stakingDuration || 0)
+        stakingDuration: Number(assignForm.stakingDuration || 0),
+        paymentMethod: assignForm.paymentMethod || 'Crypto'
       });
       toast.success(res.data.message || 'Package manually assigned successfully!');
       setShowAssignModal(false);
-      setAssignForm({ userId: '', packageId: '', amount: '', stakingDuration: 0 });
+      setAssignForm({ userId: '', packageId: '', amount: '', stakingDuration: 0, paymentMethod: 'Crypto' });
       fetchPurchases();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to assign package manually.');
@@ -657,6 +658,19 @@ const PackageHistory = () => {
                         className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0] font-mono font-bold"
                         required
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1.5">Payment Method</label>
+                      <select
+                        value={assignForm.paymentMethod || 'Crypto'}
+                        onChange={(e) => setAssignForm({ ...assignForm, paymentMethod: e.target.value })}
+                        className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#A020F0] mb-4"
+                        required
+                      >
+                        <option value="Crypto">Crypto (USDT)</option>
+                        <option value="INR">INR (Indian Rupee)</option>
+                      </select>
                     </div>
 
                     <div>
