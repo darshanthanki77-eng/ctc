@@ -28,7 +28,8 @@ const {
   approveManualBuy,
   rejectManualBuy,
   togglePrincipalWithdrawal,
-  runInrMigration
+  runInrMigration,
+  syncAllUserBalances
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -101,5 +102,8 @@ router.route('/manual-buys/:id/reject').put(protect, admin, rejectManualBuy);
 
 // Migration Route
 router.route('/migrate-users-inr').post(protect, admin, runInrMigration);
+
+// Sync Balances Route
+router.route('/sync-balances').post(protect, admin, syncAllUserBalances);
 
 module.exports = router;

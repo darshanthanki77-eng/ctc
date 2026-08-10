@@ -17,6 +17,7 @@ const Cron = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [migrating, setMigrating] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const itemsPerPage = 10;
 
   const fetchCronData = async () => {
@@ -80,6 +81,24 @@ const Cron = () => {
       toast.error(error.response?.data?.message || 'Failed to migrate users to INR');
     } finally {
       setMigrating(false);
+    }
+  };
+
+  const handleSyncBalances = async () => {
+    if (!window.confirm('Are you sure you want to sync all user available balances? This will recalculate the correct available balance for every user based on their earnings, active compounding packages, and withdrawals.')) {
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const res = await api.post('/admin/sync-balances');
+      toast.success(res.data.message || 'Balances successfully synced!');
+      console.log('Sync Report:', res.data.report);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to sync balances');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -237,6 +256,24 @@ const Cron = () => {
               className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 bg-[#E3B341] hover:bg-[#C2932E] disabled:opacity-50 text-black text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md font-bold"
             >
               {migrating ? 'Migrating to INR...' : 'Migrate Users to INR'}
+            </button>
+          </div>
+
+          {/* Sync Balances Card */}
+          <div className="bg-[#0D1117] border border-[#30363D] rounded-2xl p-5 space-y-3">
+            <h3 className="text-xs font-bold text-[#8B949E] uppercase tracking-wider flex items-center gap-2">
+              <Cpu size={15} className="text-[#3FB950]" />
+              Sync Available Balances
+            </h3>
+            <p className="text-[11px] text-[#8B949E] leading-relaxed">
+              Recalculate and correct all user available balances based on earnings minus withdrawals. Fixes any double-credited compound releases.
+            </p>
+            <button
+              onClick={handleSyncBalances}
+              disabled={syncing}
+              className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 bg-[#238636] hover:bg-[#2EA043] disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md font-bold"
+            >
+              {syncing ? 'Syncing Balances...' : 'Sync Balances Now'}
             </button>
           </div>
         </div>

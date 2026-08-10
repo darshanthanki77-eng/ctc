@@ -1389,6 +1389,55 @@ const runInrMigration = async (req, res, next) => {
   }
 };
 
+const syncAllUserBalances = async (req, res, next) => {
+  try {
+    const User = require('../models/User');
+    const UserPackage = require('../models/UserPackage');
+    const Withdrawal = require('../models/Withdrawal');
+
+    const users = await User.find();
+    const report = [];
+
+    for (const u of users) {
+      const userPackages = await UserPackage.find({ user: u._id });
+      let activeStakedROI = 0;
+      
+      for (const p of userPackages) {
+        const isStakedPkg = p.isStaked || p.stakingEnabled;
+        if (isStakedPkg && p.status === 'active') {
+          // If staking is still active, the compounding interest is locked in the package
+          activeStakedROI += Math.max(0, (p.compoundingBalance || 0) - (p.amount || 0));
+        }
+      }
+
+      const withdrawals = await Withdrawal.find({ user: u._id, status: { $ne: 'rejected' } });
+      const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0);
+      
+      // Expected Available Balance formula
+      const expectedBalance = (u.miningIncome || 0) + (u.referralIncome || 0) + (u.levelIncome || 0) + (u.promotionalIncome || 0) - activeStakedROI - (u.lockedStakingIncome || 0) - totalWithdrawn;
+      
+      const oldBalance = u.availableBalance || 0;
+      const roundedExpected = Math.round(expectedBalance * 100) / 100;
+
+      if (Math.abs(oldBalance - roundedExpected) > 0.05) {
+        u.availableBalance = Math.max(0, roundedExpected);
+        await u.save();
+        report.push({
+          userId: u.userId,
+          fullName: u.fullName,
+          oldBalance,
+          newBalance: u.availableBalance,
+          difference: roundedExpected - oldBalance
+        });
+      }
+    }
+
+    res.json({ message: 'User balances synced successfully', updatedUsersCount: report.length, report });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   deleteUser,
   adminLogin,
@@ -1418,5 +1467,6 @@ module.exports = {
   getAllManualBuys,
   approveManualBuy,
   rejectManualBuy,
-  runInrMigration
+  runInrMigration,
+  syncAllUserBalances
 };
