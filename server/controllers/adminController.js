@@ -140,7 +140,26 @@ const getDashboardStats = async (req, res, next) => {
 const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find().select('-password');
-    res.json(users);
+    
+    const withdrawalsData = await Withdrawal.aggregate([
+      { $match: { status: { $in: ['approved', 'completed', 'success'] } } },
+      { $group: { _id: '$user', totalWithdrawn: { $sum: '$amount' } } }
+    ]);
+    
+    const withdrawalMap = {};
+    withdrawalsData.forEach(w => {
+      if (w._id) {
+        withdrawalMap[w._id.toString()] = w.totalWithdrawn;
+      }
+    });
+    
+    const usersWithWithdrawn = users.map(user => {
+      const userObj = user.toObject();
+      userObj.totalWithdrawn = withdrawalMap[user._id.toString()] || 0;
+      return userObj;
+    });
+
+    res.json(usersWithWithdrawn);
   } catch (error) {
     next(error);
   }

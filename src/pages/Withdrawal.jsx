@@ -198,12 +198,19 @@ const Withdrawal = () => {
   };
 
   // Stats definition (Image 2 cards grid)
+  const totalWithdrawn = currentUser?.totalWithdrawn !== undefined
+    ? currentUser.totalWithdrawn
+    : history
+        .filter(w => ['approved', 'completed', 'success'].includes(w.status?.toLowerCase()))
+        .reduce((sum, w) => sum + w.amount, 0);
+
   const stats = [
     { title: 'Available Balance', value: currentUser?.availableBalance || 0, icon: Wallet, color: '#A020F0', bg: 'rgba(160, 32, 240, 0.08)' },
     { title: 'Total Earnings', value: currentUser?.totalEarning || 0, icon: TrendingUp, color: '#22C55E', bg: 'rgba(34, 197, 94, 0.08)' },
     { title: 'Copy Trade ROI', value: currentUser?.miningIncome || 0, icon: Cpu, color: '#00C6FF', bg: 'rgba(0, 198, 255, 0.08)' },
     { title: 'Level Income', value: currentUser?.levelIncome || 0, icon: Layers, color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)' },
-    { title: 'Promotional Income', value: currentUser?.promotionalIncome || 0, icon: Gift, color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)' }
+    { title: 'Promotional Income', value: currentUser?.promotionalIncome || 0, icon: Gift, color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)' },
+    { title: 'Total Withdrawn', value: totalWithdrawn, icon: CheckCircle2, color: '#EC4899', bg: 'rgba(236, 72, 153, 0.08)' }
   ];
 
   return (

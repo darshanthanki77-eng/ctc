@@ -18,10 +18,18 @@ const getUserProfile = async (req, res, next) => {
     const multiplier = await getUserMultiplier(user);
     const isNetworker = await checkIsNetworker(user._id);
 
+    const Withdrawal = require('../models/Withdrawal');
+    const approvedWithdrawals = await Withdrawal.aggregate([
+      { $match: { user: user._id, status: { $in: ['approved', 'completed', 'success'] } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalWithdrawn = approvedWithdrawals.length > 0 ? approvedWithdrawals[0].total : 0;
+
     const responseData = {
       ...user.toObject(),
       multiplier,
-      isNetworker
+      isNetworker,
+      totalWithdrawn
     };
 
     res.json(responseData);

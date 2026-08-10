@@ -936,8 +936,9 @@ const Users = () => {
                       { title: 'Available Balance', value: `$${Number(selectedUser.availableBalance || 0).toFixed(2)}`, color: 'text-[#00C6FF]' },
                       { title: 'Copy Trade ROI', value: `$${Number(selectedUser.miningIncome || 0).toFixed(2)}`, color: 'text-[#A020F0]' },
                       { title: 'Referral & Level Income', value: `$${Number((selectedUser.referralIncome || 0) + (selectedUser.levelIncome || 0)).toFixed(2)}`, color: 'text-[#FF00FF]' },
+                      { title: 'Total Withdrawn', value: `$${Number(selectedUser.totalWithdrawn || 0).toFixed(2)}`, color: 'text-rose-400', fullWidth: true }
                     ].map((stat, idx) => (
-                      <div key={idx} className="bg-[#161B2A]/30 border border-gray-800 p-4 rounded-xl">
+                      <div key={idx} className={`bg-[#161B2A]/30 border border-gray-800 p-4 rounded-xl ${stat.fullWidth ? 'col-span-2' : ''}`}>
                         <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">{stat.title}</span>
                         <span className={`text-lg font-extrabold ${stat.color}`}>{stat.value}</span>
                       </div>
