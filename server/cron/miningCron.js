@@ -305,8 +305,11 @@ const runMiningCronCycle = async (force = false) => {
       // let currentMarginBonus = marginBonusMap[user.rank] || 0;
       let totalDailyPercent = pkg.dailyProfitPercent; // + currentMarginBonus; // Temporarily commented out rank margin bonus
 
-      // Auto-Compounding Base: Calculate profit on the GROWING compounded balance
-      let baseAmount = pkg.compoundingBalance || pkg.amount;
+      // Determine if staking is active for compounding decision
+      const isStakingActive = pkg.stakingEnabled || (pkg.isStaked && !pkg.stakingEndDate);
+
+      // Auto-Compounding Base: Calculate profit on the GROWING compounded balance only if staking is active
+      let baseAmount = isStakingActive ? (pkg.compoundingBalance || pkg.amount) : pkg.amount;
       let profitAmount = (baseAmount * (totalDailyPercent / 100)) / 2; // 2 cycles a day
 
       // Fastrack Bonus (Double profit)
@@ -350,10 +353,6 @@ const runMiningCronCycle = async (force = false) => {
         triggerType: force ? 'Manual' : 'Auto',
         isManual: !!force
       });
- 
-      // Determine if staking is active for compounding decision
-      const isStakingActive = pkg.stakingEnabled || (pkg.isStaked && !pkg.stakingEndDate);
-
       // Profit always goes to availableBalance as requested
       const withdrawableAmount = profitAmount;
  
