@@ -1457,12 +1457,14 @@ const extendStakingPeriod = async (req, res, next) => {
         continue;
       }
 
-      // Find all packages of the user where staking has ended or is recently completed
+      // Find all packages of the user that are staked, compounding, or completed
       const packages = await UserPackage.find({ 
         user: user._id,
         $or: [
-          { stakingEndDate: { $lte: new Date() } },
-          { isStakingReleased: true }
+          { isStaked: true },
+          { stakingEnabled: true },
+          { isStakingReleased: true },
+          { stakingEndDate: { $lte: new Date() } }
         ]
       });
 
@@ -1470,26 +1472,36 @@ const extendStakingPeriod = async (req, res, next) => {
       let totalDeduction = 0;
 
       for (const p of packages) {
-        // Calculate the released compounding ROI (which is equal to totalEarned)
-        const releasedROI = p.totalEarned || 0;
-        
-        // Restore compounding balance to the compounded amount (principal + earned ROI)
-        p.compoundingBalance = p.amount + releasedROI;
-        
-        // Extend staking by 20 days from today
-        p.stakingEndDate = twentyDaysFromNow;
-        p.stakingPeriod = 20;
-        p.isStaked = true;
-        p.stakingEnabled = true;
-        p.autoCompounding = true;
-        p.isStakingReleased = false;
+        const isAlreadyExtended = p.stakingEndDate && p.stakingEndDate > new Date() && !p.isStakingReleased;
 
-        await p.save();
-        updatedPkgs.push(p._id);
-        totalDeduction += releasedROI;
+        if (isAlreadyExtended) {
+          // If it was already extended but the compoundingBalance was reset incorrectly, correct it
+          const correctBalance = p.amount + (p.totalEarned || 0);
+          if (p.compoundingBalance < correctBalance) {
+            const diff = correctBalance - p.compoundingBalance;
+            p.compoundingBalance = correctBalance;
+            await p.save();
+            updatedPkgs.push(p._id);
+            totalDeduction += diff;
+          }
+        } else {
+          // This package completed its period and needs to be extended now
+          const releasedROI = p.totalEarned || 0;
+          p.compoundingBalance = p.amount + releasedROI;
+          p.stakingEndDate = twentyDaysFromNow;
+          p.stakingPeriod = 20;
+          p.isStaked = true;
+          p.stakingEnabled = true;
+          p.autoCompounding = true;
+          p.isStakingReleased = false;
+
+          await p.save();
+          updatedPkgs.push(p._id);
+          totalDeduction += releasedROI;
+        }
       }
 
-      // Deduct the released compounding ROI from the user's available balance
+      // Deduct the correction/released amount from user's available balance
       if (totalDeduction > 0) {
         user.availableBalance = Math.max(0, Math.round(((user.availableBalance || 0) - totalDeduction) * 100) / 100);
         await user.save();
