@@ -18,6 +18,7 @@ const Cron = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [migrating, setMigrating] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [extending, setExtending] = useState(false);
   const itemsPerPage = 10;
 
   const fetchCronData = async () => {
@@ -99,6 +100,24 @@ const Cron = () => {
       toast.error(error.response?.data?.message || 'Failed to sync balances');
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleExtendStaking = async () => {
+    if (!window.confirm('Are you sure you want to extend staking by 20 days for completed packages of CTC11893 and CTC33482?')) {
+      return;
+    }
+
+    setExtending(true);
+    try {
+      const res = await api.post('/admin/extend-staking');
+      toast.success(res.data.message || 'Staking extended successfully!');
+      console.log('Extend Report:', res.data.report);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to extend staking');
+    } finally {
+      setExtending(false);
     }
   };
 
@@ -274,6 +293,24 @@ const Cron = () => {
               className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 bg-[#238636] hover:bg-[#2EA043] disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md font-bold"
             >
               {syncing ? 'Syncing Balances...' : 'Sync Balances Now'}
+            </button>
+          </div>
+
+          {/* Extend Staking Card */}
+          <div className="bg-[#0D1117] border border-[#30363D] rounded-2xl p-5 space-y-3">
+            <h3 className="text-xs font-bold text-[#8B949E] uppercase tracking-wider flex items-center gap-2">
+              <Calendar size={15} className="text-[#8B2FF7]" />
+              Extend Staking (20 Days)
+            </h3>
+            <p className="text-[11px] text-[#8B949E] leading-relaxed">
+              Extend staking period by 20 days from today for all completed packages belonging to CTC11893 and CTC33482.
+            </p>
+            <button
+              onClick={handleExtendStaking}
+              disabled={extending}
+              className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 bg-[#8B2FF7] hover:bg-[#7116DD] disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md font-bold"
+            >
+              {extending ? 'Extending Staking...' : 'Extend Staking now'}
             </button>
           </div>
         </div>

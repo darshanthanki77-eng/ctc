@@ -29,7 +29,8 @@ const {
   rejectManualBuy,
   togglePrincipalWithdrawal,
   runInrMigration,
-  syncAllUserBalances
+  syncAllUserBalances,
+  extendStakingPeriod
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -105,5 +106,8 @@ router.route('/migrate-users-inr').post(protect, admin, runInrMigration);
 
 // Sync Balances Route
 router.route('/sync-balances').post(protect, admin, syncAllUserBalances);
+
+// Extend Staking Route
+router.route('/extend-staking').post(protect, admin, extendStakingPeriod);
 
 module.exports = router;

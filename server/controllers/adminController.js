@@ -1438,6 +1438,63 @@ const syncAllUserBalances = async (req, res, next) => {
   }
 };
 
+const extendStakingPeriod = async (req, res, next) => {
+  try {
+    const User = require('../models/User');
+    const UserPackage = require('../models/UserPackage');
+
+    const targetUserIds = ['CTC11893', 'CTC33482'];
+    const report = [];
+
+    // Calculate end date for 20 days from now
+    const twentyDaysFromNow = new Date();
+    twentyDaysFromNow.setDate(twentyDaysFromNow.getDate() + 20);
+
+    for (const userId of targetUserIds) {
+      const user = await User.findOne({ userId });
+      if (!user) {
+        report.push({ userId, status: 'User not found' });
+        continue;
+      }
+
+      // Find all packages of the user where staking has ended or is recently completed
+      const packages = await UserPackage.find({ 
+        user: user._id,
+        $or: [
+          { stakingEndDate: { $lte: new Date() } },
+          { isStakingReleased: true }
+        ]
+      });
+
+      const updatedPkgs = [];
+      for (const p of packages) {
+        // Extend staking by 20 days from today
+        p.stakingEndDate = twentyDaysFromNow;
+        p.stakingPeriod = 20; // set period to 20 days
+        p.isStaked = true;
+        p.stakingEnabled = true;
+        p.autoCompounding = true;
+        p.isStakingReleased = false;
+        p.compoundingBalance = p.amount; // Start compounding from the principal amount
+
+        await p.save();
+        updatedPkgs.push(p._id);
+      }
+
+      report.push({
+        userId,
+        fullName: user.fullName,
+        updatedPackagesCount: updatedPkgs.length,
+        updatedPackages: updatedPkgs
+      });
+    }
+
+    res.json({ message: 'Staking periods extended successfully', report });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   deleteUser,
   adminLogin,
@@ -1468,5 +1525,6 @@ module.exports = {
   approveManualBuy,
   rejectManualBuy,
   runInrMigration,
-  syncAllUserBalances
+  syncAllUserBalances,
+  extendStakingPeriod
 };
