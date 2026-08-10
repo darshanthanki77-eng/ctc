@@ -39,6 +39,22 @@ export default function PackageHistory() {
 
   const [activeManualModal, setActiveManualModal] = useState(null);
 
+  const formatStakingDates = (pkg) => {
+    const start = pkg.stakingStartDate || pkg.createdAt;
+    const end = pkg.stakingEndDate;
+    if (!start || !end) return null;
+    
+    const formatDate = (date) => {
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return `${formatDate(start)} - ${formatDate(end)}`;
+  };
+
   const fetchPackages = async () => {
     try {
       const res = await api.get('/package/my-packages');
@@ -301,23 +317,37 @@ export default function PackageHistory() {
                           </button>
                         ) : (
                           (p.stakingEndDate && new Date(p.stakingEndDate) <= new Date()) ? (
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 4,
-                              fontSize: 10.5, fontWeight: 700, color: 'var(--muted)',
-                              background: 'rgba(0, 0, 0, 0.05)', border: '1px solid rgba(0, 0, 0, 0.1)',
-                              padding: '3px 8px', borderRadius: 8
-                            }}>
-                              Staking Completed
-                            </span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                fontSize: 10.5, fontWeight: 700, color: 'var(--muted)',
+                                background: 'rgba(0, 0, 0, 0.05)', border: '1px solid rgba(0, 0, 0, 0.1)',
+                                padding: '3px 8px', borderRadius: 8
+                              }}>
+                                Staking Completed
+                              </span>
+                              {formatStakingDates(p) && (
+                                <span style={{ fontSize: 9.5, color: 'var(--muted)', fontWeight: 600, display: 'block', marginTop: 1, fontFamily: 'monospace' }}>
+                                  {formatStakingDates(p)}
+                                </span>
+                              )}
+                            </div>
                           ) : (p.stakingEnabled || p.isStaked) ? (
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 4,
-                              fontSize: 10.5, fontWeight: 700, color: 'var(--pink)',
-                              background: 'rgba(243, 16, 253, 0.07)', border: '1px solid rgba(243, 16, 253, 0.15)',
-                              padding: '3px 8px', borderRadius: 8
-                            }}>
-                              Compounded ({p.stakingPeriod || p.stakingDuration}d)
-                            </span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                fontSize: 10.5, fontWeight: 700, color: 'var(--pink)',
+                                background: 'rgba(243, 16, 253, 0.07)', border: '1px solid rgba(243, 16, 253, 0.15)',
+                                padding: '3px 8px', borderRadius: 8
+                              }}>
+                                Compounded ({p.stakingPeriod || p.stakingDuration}d)
+                              </span>
+                              {formatStakingDates(p) && (
+                                <span style={{ fontSize: 9.5, color: 'var(--muted)', fontWeight: 600, display: 'block', marginTop: 1, fontFamily: 'monospace' }}>
+                                  {formatStakingDates(p)}
+                                </span>
+                              )}
+                            </div>
                           ) : statusLower === 'active' ? (
                             <button
                               onClick={() => {
