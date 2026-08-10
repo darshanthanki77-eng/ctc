@@ -165,8 +165,12 @@ const runMiningCronCycle = async (force = false) => {
             });
             console.log(`[CRON] Released staked package ${expiredPkg._id} ROI of ${releaseAmount} to user ${u.userId}`);
             
-            // Mark as staking released
+            // Mark as staking released and reset compounding states
             expiredPkg.isStakingReleased = true;
+            expiredPkg.compoundingBalance = expiredPkg.amount;
+            expiredPkg.stakingEnabled = false;
+            expiredPkg.autoCompounding = false;
+            expiredPkg.isStaked = false;
           } else {
             // Normal package completes without refunding principal (since user got payouts)
             await AuditLog.create({
@@ -212,8 +216,9 @@ const runMiningCronCycle = async (force = false) => {
         continue;
       }
 
-      // Check if staking duration has completed for active package
-      if (pkg.stakingEnabled && pkg.stakingEndDate && pkg.stakingEndDate <= new Date()) {
+      // Check if staking duration has completed for active package (supports both stakingEnabled and isStaked)
+      const hasStakingEnded = (pkg.stakingEnabled || pkg.isStaked) && pkg.stakingEndDate && pkg.stakingEndDate <= new Date();
+      if (hasStakingEnded) {
         const UserPackage = require('../models/UserPackage');
         const Transaction = require('../models/Transaction');
 
