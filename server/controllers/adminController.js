@@ -1467,23 +1467,39 @@ const extendStakingPeriod = async (req, res, next) => {
       });
 
       const updatedPkgs = [];
+      let totalDeduction = 0;
+
       for (const p of packages) {
+        // Calculate the released compounding ROI (which is equal to totalEarned)
+        const releasedROI = p.totalEarned || 0;
+        
+        // Restore compounding balance to the compounded amount (principal + earned ROI)
+        p.compoundingBalance = p.amount + releasedROI;
+        
         // Extend staking by 20 days from today
         p.stakingEndDate = twentyDaysFromNow;
-        p.stakingPeriod = 20; // set period to 20 days
+        p.stakingPeriod = 20;
         p.isStaked = true;
         p.stakingEnabled = true;
         p.autoCompounding = true;
         p.isStakingReleased = false;
-        p.compoundingBalance = p.amount; // Start compounding from the principal amount
 
         await p.save();
         updatedPkgs.push(p._id);
+        totalDeduction += releasedROI;
+      }
+
+      // Deduct the released compounding ROI from the user's available balance
+      if (totalDeduction > 0) {
+        user.availableBalance = Math.max(0, Math.round(((user.availableBalance || 0) - totalDeduction) * 100) / 100);
+        await user.save();
       }
 
       report.push({
         userId,
         fullName: user.fullName,
+        deductedFromBalance: totalDeduction,
+        newAvailableBalance: user.availableBalance,
         updatedPackagesCount: updatedPkgs.length,
         updatedPackages: updatedPkgs
       });
