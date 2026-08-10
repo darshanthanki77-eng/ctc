@@ -30,7 +30,8 @@ const {
   togglePrincipalWithdrawal,
   runInrMigration,
   syncAllUserBalances,
-  extendStakingPeriod
+  extendStakingPeriod,
+  removeStakingPH001
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -109,5 +110,8 @@ router.route('/sync-balances').post(protect, admin, syncAllUserBalances);
 
 // Extend Staking Route
 router.route('/extend-staking').post(protect, admin, extendStakingPeriod);
+
+// Remove Staking Route for PH-001
+router.route('/remove-staking-ph001').post(protect, admin, removeStakingPH001);
 
 module.exports = router;

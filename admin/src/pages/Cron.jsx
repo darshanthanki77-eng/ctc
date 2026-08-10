@@ -19,6 +19,7 @@ const Cron = () => {
   const [migrating, setMigrating] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [extending, setExtending] = useState(false);
+  const [removingStaking, setRemovingStaking] = useState(false);
   const itemsPerPage = 10;
 
   const fetchCronData = async () => {
@@ -118,6 +119,23 @@ const Cron = () => {
       toast.error(error.response?.data?.message || 'Failed to extend staking');
     } finally {
       setExtending(false);
+    }
+  };
+
+  const handleRemoveStaking = async () => {
+    if (!window.confirm("Are you sure you want to disable staking/compounding for CTC11893's PH-001 package? This will reset its compounding balance back to $125.")) {
+      return;
+    }
+
+    setRemovingStaking(true);
+    try {
+      const res = await api.post('/admin/remove-staking-ph001');
+      toast.success(res.data.message || 'Staking removed successfully!');
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to remove staking');
+    } finally {
+      setRemovingStaking(false);
     }
   };
 
@@ -311,6 +329,24 @@ const Cron = () => {
               className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 bg-[#8B2FF7] hover:bg-[#7116DD] disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md font-bold"
             >
               {extending ? 'Extending Staking...' : 'Extend Staking now'}
+            </button>
+          </div>
+
+          {/* Remove Staking Card */}
+          <div className="bg-[#0D1117] border border-[#30363D] rounded-2xl p-5 space-y-3">
+            <h3 className="text-xs font-bold text-[#8B949E] uppercase tracking-wider flex items-center gap-2">
+              <XCircle size={15} className="text-[#F85149]" />
+              Disable Staking (CTC11893)
+            </h3>
+            <p className="text-[11px] text-[#8B949E] leading-relaxed">
+              Remove active staking/compounding status and reset compounding balance for CTC11893's PH-001 ($125) package.
+            </p>
+            <button
+              onClick={handleRemoveStaking}
+              disabled={removingStaking}
+              className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 bg-[#F85149] hover:bg-[#DA3633] disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md font-bold"
+            >
+              {removingStaking ? 'Disabling Staking...' : 'Disable Staking now'}
             </button>
           </div>
         </div>
