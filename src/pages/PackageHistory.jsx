@@ -300,7 +300,16 @@ export default function PackageHistory() {
                             Manual Info
                           </button>
                         ) : (
-                          (p.stakingEnabled || p.isStaked) ? (
+                          (p.stakingEndDate && new Date(p.stakingEndDate) <= new Date()) ? (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              fontSize: 10.5, fontWeight: 700, color: 'var(--muted)',
+                              background: 'rgba(0, 0, 0, 0.05)', border: '1px solid rgba(0, 0, 0, 0.1)',
+                              padding: '3px 8px', borderRadius: 8
+                            }}>
+                              Staking Completed
+                            </span>
+                          ) : (p.stakingEnabled || p.isStaked) ? (
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: 4,
                               fontSize: 10.5, fontWeight: 700, color: 'var(--pink)',
