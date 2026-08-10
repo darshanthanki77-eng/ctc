@@ -16,6 +16,7 @@ const Cron = () => {
   const [triggering, setTriggering] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [migrating, setMigrating] = useState(false);
   const itemsPerPage = 10;
 
   const fetchCronData = async () => {
@@ -61,6 +62,24 @@ const Cron = () => {
       toast.error(error.response?.data?.message || 'Failed to trigger ROI distribution');
     } finally {
       setTriggering(false);
+    }
+  };
+
+  const handleMigrateInr = async () => {
+    if (!window.confirm('Are you sure you want to migrate selected users to INR mode? This will convert their available USD balances to INR and change their packages to INR payment method.')) {
+      return;
+    }
+
+    setMigrating(true);
+    try {
+      const res = await api.post('/admin/migrate-users-inr');
+      toast.success(res.data.message || 'Users successfully migrated to INR!');
+      console.log('Migration Report:', res.data.report);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to migrate users to INR');
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -201,6 +220,24 @@ const Cron = () => {
               <span>Total Workflow Executions:</span>
               <span className="font-bold text-white">{summary.totalRunsCount || workflowRuns.length} Runs</span>
             </div>
+          </div>
+
+          {/* INR Migration Patch Card */}
+          <div className="bg-[#0D1117] border border-[#30363D] rounded-2xl p-5 space-y-3">
+            <h3 className="text-xs font-bold text-[#8B949E] uppercase tracking-wider flex items-center gap-2">
+              <TrendingUp size={15} className="text-[#E3B341]" />
+              INR Payout Migration
+            </h3>
+            <p className="text-[11px] text-[#8B949E] leading-relaxed">
+              Convert USD balances to INR and switch package payouts to INR mode for specific users (CTC14507, CTC83462, etc.).
+            </p>
+            <button
+              onClick={handleMigrateInr}
+              disabled={migrating}
+              className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 bg-[#E3B341] hover:bg-[#C2932E] disabled:opacity-50 text-black text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md font-bold"
+            >
+              {migrating ? 'Migrating to INR...' : 'Migrate Users to INR'}
+            </button>
           </div>
         </div>
 

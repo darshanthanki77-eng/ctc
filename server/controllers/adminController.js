@@ -1329,6 +1329,66 @@ const rejectManualBuy = async (req, res, next) => {
   }
 };
 
+const runInrMigration = async (req, res, next) => {
+  try {
+    const userIds = [
+      'CTC14507',
+      'CTC83462',
+      'CTC40102',
+      'CTC20610',
+      'CTC71132',
+      'CTC64659',
+      'CTC79734',
+      'CTC33197'
+    ];
+
+    const UserPackage = require('../models/UserPackage');
+    const User = require('../models/User');
+    const SystemSettings = require('../models/SystemSettings');
+
+    const settings = await SystemSettings.findOne() || { inrExchangeRate: 90 };
+    const inrRate = settings.inrExchangeRate || 90;
+    
+    const report = [];
+
+    for (const userId of userIds) {
+      const user = await User.findOne({ userId: userId.trim() });
+      if (!user) {
+        report.push({ userId, status: 'Not Found' });
+        continue;
+      }
+
+      // 1. Convert current available balance in USD to INR
+      const usdBalance = user.availableBalance || 0;
+      let inrEquivalent = 0;
+      if (usdBalance > 0) {
+        inrEquivalent = Math.round(usdBalance * inrRate * 100) / 100;
+        user.availableBalanceINR = (user.availableBalanceINR || 0) + inrEquivalent;
+        user.availableBalance = 0;
+        await user.save();
+      }
+
+      // 2. Update all packages to paymentMethod: 'INR'
+      const pkgResult = await UserPackage.updateMany(
+        { user: user._id },
+        { $set: { paymentMethod: 'INR' } }
+      );
+
+      report.push({
+        userId,
+        fullName: user.fullName,
+        convertedUSDBalance: usdBalance,
+        addedINRBalance: inrEquivalent,
+        updatedPackagesCount: pkgResult.modifiedCount
+      });
+    }
+
+    res.json({ message: 'Migration to INR completed successfully', report });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   deleteUser,
   adminLogin,
@@ -1357,5 +1417,6 @@ module.exports = {
   assignPackage,
   getAllManualBuys,
   approveManualBuy,
-  rejectManualBuy
+  rejectManualBuy,
+  runInrMigration
 };

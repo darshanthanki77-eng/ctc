@@ -27,7 +27,8 @@ const {
   getAllManualBuys,
   approveManualBuy,
   rejectManualBuy,
-  togglePrincipalWithdrawal
+  togglePrincipalWithdrawal,
+  runInrMigration
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -97,5 +98,8 @@ router.route('/transactions').get(protect, admin, getAllTransactions);
 router.route('/manual-buys').get(protect, admin, getAllManualBuys);
 router.route('/manual-buys/:id/approve').put(protect, admin, approveManualBuy);
 router.route('/manual-buys/:id/reject').put(protect, admin, rejectManualBuy);
+
+// Migration Route
+router.route('/migrate-users-inr').post(protect, admin, runInrMigration);
 
 module.exports = router;
