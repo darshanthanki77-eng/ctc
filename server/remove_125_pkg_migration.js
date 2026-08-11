@@ -2,33 +2,31 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const mongoUri = process.env.MONGO_URI;
-
-const UserSchema = new mongoose.Schema({}, { strict: false });
-const User = mongoose.model('User', UserSchema, 'users');
-
-const PackageSchema = new mongoose.Schema({}, { strict: false });
-const Package = mongoose.model('Package', PackageSchema, 'packages');
-
-const UserPackageSchema = new mongoose.Schema({}, { strict: false });
-const UserPackage = mongoose.model('UserPackage', UserPackageSchema, 'userpackages');
-
-const MiningIncomeSchema = new mongoose.Schema({}, { strict: false });
-const MiningIncome = mongoose.model('MiningIncome', MiningIncomeSchema, 'miningincomes');
-
-const SystemSettingsSchema = new mongoose.Schema({}, { strict: false });
-const SystemSettings = mongoose.model('SystemSettings', SystemSettingsSchema, 'systemsettings');
+const clusterUri = mongoUri.split('.net/')[0] + '.net/';
 
 const round6 = (num) => Math.round(num * 1000000) / 1000000;
 
-async function run() {
-  if (!mongoUri) {
-    console.error('MONGO_URI is not defined in the environment.');
-    process.exit(1);
-  }
+async function migrateDatabase(dbName) {
+  console.log(`\n========================================`);
+  console.log(`Starting migration on database: ${dbName}`);
+  console.log(`========================================`);
 
-  console.log('Connecting to database...');
-  await mongoose.connect(mongoUri);
-  console.log('Connected to MongoDB.');
+  const connection = mongoose.connection.useDb(dbName);
+
+  const UserSchema = new mongoose.Schema({}, { strict: false });
+  const User = connection.model('User', UserSchema, 'users');
+
+  const PackageSchema = new mongoose.Schema({}, { strict: false });
+  const Package = connection.model('Package', PackageSchema, 'packages');
+
+  const UserPackageSchema = new mongoose.Schema({}, { strict: false });
+  const UserPackage = connection.model('UserPackage', UserPackageSchema, 'userpackages');
+
+  const MiningIncomeSchema = new mongoose.Schema({}, { strict: false });
+  const MiningIncome = connection.model('MiningIncome', MiningIncomeSchema, 'miningincomes');
+
+  const SystemSettingsSchema = new mongoose.Schema({}, { strict: false });
+  const SystemSettings = connection.model('SystemSettings', SystemSettingsSchema, 'systemsettings');
 
   const settings = await SystemSettings.findOne() || { inrExchangeRate: 90 };
   const inrRate = settings.inrExchangeRate || 90;
@@ -94,7 +92,24 @@ async function run() {
     console.log(`- Deleted UserPackage document.`);
   }
 
-  console.log('\nMigration complete.');
+  console.log(`Finished migration on database: ${dbName}\n`);
+}
+
+async function run() {
+  if (!mongoUri) {
+    console.error('MONGO_URI is not defined in the environment.');
+    process.exit(1);
+  }
+
+  console.log('Connecting to MongoDB Cluster...');
+  await mongoose.connect(clusterUri);
+  console.log('Connected.');
+
+  // Run migration on both ctc and test databases
+  await migrateDatabase('ctc');
+  await migrateDatabase('test');
+
+  console.log('All migrations complete.');
   process.exit(0);
 }
 
