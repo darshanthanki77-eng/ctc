@@ -6,6 +6,9 @@ const mongoUri = process.env.MONGO_URI;
 const UserSchema = new mongoose.Schema({}, { strict: false });
 const User = mongoose.model('User', UserSchema, 'users');
 
+const PackageSchema = new mongoose.Schema({}, { strict: false });
+const Package = mongoose.model('Package', PackageSchema, 'packages');
+
 const UserPackageSchema = new mongoose.Schema({}, { strict: false });
 const UserPackage = mongoose.model('UserPackage', UserPackageSchema, 'userpackages');
 
@@ -30,7 +33,20 @@ async function run() {
   const settings = await SystemSettings.findOne() || { inrExchangeRate: 90 };
   const inrRate = settings.inrExchangeRate || 90;
 
-  // Find all user packages with amount 125
+  // 1. Find and delete package definitions with amount 125
+  const packagesDefToRemove = await Package.find({
+    $or: [
+      { minAmount: 125 },
+      { maxAmount: 125 }
+    ]
+  });
+  console.log(`Found ${packagesDefToRemove.length} package definitions with amount $125 to remove.`);
+  for (const p of packagesDefToRemove) {
+    await Package.deleteOne({ _id: p._id });
+    console.log(`- Deleted package definition: ${p.name} (ID: ${p._id})`);
+  }
+
+  // 2. Find all user packages with amount 125
   const packagesToRemove = await UserPackage.find({ amount: 125 });
   console.log(`Found ${packagesToRemove.length} user packages with amount $125 to remove.`);
 
