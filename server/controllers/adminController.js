@@ -1523,46 +1523,7 @@ const extendStakingPeriod = async (req, res, next) => {
   }
 };
 
-const removeStakingPH001 = async (req, res, next) => {
-  try {
-    const User = require('../models/User');
-    const UserPackage = require('../models/UserPackage');
 
-    const user = await User.findOne({ userId: 'CTC11893' });
-    if (!user) {
-      return res.status(404).json({ message: 'User CTC11893 not found' });
-    }
-
-    // Find the PH-001 package (amount 125)
-    const pkg = await UserPackage.findOne({
-      user: user._id,
-      amount: 125
-    });
-
-    if (!pkg) {
-      return res.status(404).json({ message: 'Package PH-001 ($125) not found for this user' });
-    }
-
-    pkg.stakingEnabled = false;
-    pkg.isStaked = false;
-    pkg.autoCompounding = false;
-    pkg.compoundingBalance = pkg.amount; // reset compounding balance to principal
-    await pkg.save();
-
-    res.json({ 
-      message: 'Staking removed from PH-001 package successfully', 
-      package: {
-        id: pkg._id,
-        amount: pkg.amount,
-        compoundingBalance: pkg.compoundingBalance,
-        stakingEnabled: pkg.stakingEnabled,
-        isStaked: pkg.isStaked
-      } 
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 module.exports = {
   deleteUser,
@@ -1595,6 +1556,5 @@ module.exports = {
   rejectManualBuy,
   runInrMigration,
   syncAllUserBalances,
-  extendStakingPeriod,
-  removeStakingPH001
+  extendStakingPeriod
 };
