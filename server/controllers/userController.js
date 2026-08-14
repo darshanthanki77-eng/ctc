@@ -40,7 +40,7 @@ const getUserProfile = async (req, res, next) => {
 
 const getPromoInvestmentsForUsers = async (userIds) => {
   if (!userIds || userIds.length === 0) return {};
-  const activePkgs = await UserPackage.find({ user: { $in: userIds }, status: 'active' }).populate('packageId');
+  const activePkgs = await UserPackage.find({ user: { $in: userIds }, status: { $ne: 'cancelled' } }).populate('packageId');
   const investmentMap = {};
   
   for (const id of userIds) {
