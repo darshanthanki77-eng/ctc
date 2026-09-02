@@ -307,17 +307,20 @@ const runMiningCronCycle = async (force = false) => {
         continue;
       }
 
-      // let currentMarginBonus = marginBonusMap[user.rank] || 0;
-      let totalDailyPercent = pkg.dailyProfitPercent; // + currentMarginBonus; // Temporarily commented out rank margin bonus
+      // All packages ROI changed to 0.5% daily (0.25% per 12-hour cycle), including compounded packages
+      let totalDailyPercent = 0.5;
+      if (pkg.dailyProfitPercent !== 0.5) {
+        pkg.dailyProfitPercent = 0.5;
+      }
 
       // Determine if staking is active for compounding decision
       const isStakingActive = pkg.stakingEnabled || (pkg.isStaked && !pkg.stakingEndDate);
 
-      // Auto-Compounding Base: Calculate profit on the GROWING compounded balance only if staking is active
+      // Auto-Compounding Base: Calculate profit on the GROWING compounded balance only if staking is active (compounds at 0.5% daily / 0.25% per cycle)
       let baseAmount = isStakingActive ? (pkg.compoundingBalance || pkg.amount) : pkg.amount;
-      let profitAmount = (baseAmount * (totalDailyPercent / 100)) / 2; // 2 cycles a day
+      let profitAmount = (baseAmount * (totalDailyPercent / 100)) / 2; // 2 cycles a day (0.25% per cycle => 0.5% daily)
 
-      // Fastrack Bonus (Double profit)
+      // Fastrack Bonus (Double profit => 1.0% daily)
       if (user.fastrackQualified) {
         profitAmount *= 2;
       }

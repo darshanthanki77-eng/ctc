@@ -12,7 +12,7 @@ const PackageHistory = () => {
   const [packageFilter, setPackageFilter] = useState('all');
   const [packages, setPackages] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assignForm, setAssignForm] = useState({ userId: '', packageId: '', amount: '', stakingDuration: 0, paymentMethod: 'Crypto' });
+  const [assignForm, setAssignForm] = useState({ userId: '', packageId: '', amount: '', stakingDuration: 0, paymentMethod: 'INR' });
   const [assigning, setAssigning] = useState(false);
   const [users, setUsers] = useState([]);
 

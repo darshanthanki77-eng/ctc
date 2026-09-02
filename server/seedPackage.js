@@ -16,7 +16,7 @@ const packages = [
     name: 'Package 2',
     minAmount: 1500,
     maxAmount: 5000,
-    dailyProfit: 0.6,
+    dailyProfit: 0.5,
     validity: 36500, // Lifetime (approx 100 years)
     isReferralOnly: false,
     status: true
@@ -25,7 +25,7 @@ const packages = [
     name: 'Package 3',
     minAmount: 10000,
     maxAmount: 25000,
-    dailyProfit: 0.65,
+    dailyProfit: 0.5,
     validity: 36500, // Lifetime (approx 100 years)
     isReferralOnly: false,
     status: true
@@ -34,7 +34,7 @@ const packages = [
     name: 'Package 4',
     minAmount: 50000,
     maxAmount: 50000,
-    dailyProfit: 0.75,
+    dailyProfit: 0.5,
     validity: 36500, // Lifetime (approx 100 years)
     isReferralOnly: false,
     status: true

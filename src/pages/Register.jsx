@@ -183,7 +183,7 @@ export default function Register() {
             marginBottom: 40,
           }}>
             {[
-              { icon: '💰', text: '0.5%-0.8% ROI every 12 hours' },
+              { icon: '💰', text: '0.5% Daily ROI (0.25% every 12h)' },
               { icon: '👥', text: '5 Level network referral system' },
               { icon: '🏆', text: 'Booster dividends & Rank pools' },
             ].map((b, i) => (

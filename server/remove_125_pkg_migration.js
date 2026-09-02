@@ -97,7 +97,7 @@ async function migrateDatabase(dbName) {
 
 async function run() {
   if (!mongoUri) {
-    console.error('MONGO_URI is not defined in the environment.');
+    console.error('MONGO_URI is not defined.');
     process.exit(1);
   }
 
@@ -105,9 +105,29 @@ async function run() {
   await mongoose.connect(clusterUri);
   console.log('Connected.');
 
-  // Run migration on both ctc and test databases
-  await migrateDatabase('ctc');
-  await migrateDatabase('test');
+  // Auto-detect all databases containing 'userpackages' collection
+  const adminDb = mongoose.connection.client.db().admin();
+  const dbsList = await adminDb.listDatabases();
+  const targetDbs = [];
+
+  for (const dbInfo of dbsList.databases) {
+    if (['admin', 'local'].includes(dbInfo.name)) continue;
+    try {
+      const db = mongoose.connection.client.db(dbInfo.name);
+      const collections = await db.listCollections().toArray();
+      if (collections.some(c => c.name === 'userpackages')) {
+        targetDbs.push(dbInfo.name);
+      }
+    } catch (e) {
+      // Skip unauthorized databases
+    }
+  }
+
+  console.log('Detected target databases containing userpackages:', targetDbs);
+
+  for (const dbName of targetDbs) {
+    await migrateDatabase(dbName);
+  }
 
   console.log('All migrations complete.');
   process.exit(0);

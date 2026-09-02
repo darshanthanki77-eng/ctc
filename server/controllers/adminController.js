@@ -950,7 +950,7 @@ const updateUser = async (req, res, next) => {
 
 const assignPackage = async (req, res, next) => {
   try {
-    const { userId, packageId, amount, stakingDuration, paymentMethod = 'Crypto' } = req.body;
+    const { userId, packageId, amount, stakingDuration, paymentMethod = 'INR' } = req.body;
 
     if (!userId || !packageId || !amount) {
       return res.status(400).json({ message: 'User ID, Package, and Amount are required.' });
