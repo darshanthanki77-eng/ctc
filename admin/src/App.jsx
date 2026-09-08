@@ -15,6 +15,7 @@ import Fraud from './pages/Fraud';
 import Transactions from './pages/Transactions';
 import PackageHistory from './pages/PackageHistory';
 import ManualBuys from './pages/ManualBuys';
+import LiveTrading from './pages/LiveTrading';
 import Login from './pages/Login';
 
 const ProtectedRoute = ({ children }) => {
@@ -64,6 +65,7 @@ function App() {
           <Route path="dashboard" element={<PageProtectedRoute pageKey="dashboard"><Dashboard /></PageProtectedRoute>} />
           <Route path="users" element={<PageProtectedRoute pageKey="users"><Users /></PageProtectedRoute>} />
           <Route path="packages" element={<PageProtectedRoute pageKey="packages"><Packages /></PageProtectedRoute>} />
+          <Route path="live-trading" element={<PageProtectedRoute pageKey="live-trading"><LiveTrading /></PageProtectedRoute>} />
           <Route path="package-history" element={<PageProtectedRoute pageKey="package-history"><PackageHistory /></PageProtectedRoute>} />
           <Route path="manual-buys" element={<PageProtectedRoute pageKey="manual-buys"><ManualBuys /></PageProtectedRoute>} />
           <Route path="withdrawals" element={<PageProtectedRoute pageKey="withdrawals"><Withdrawals /></PageProtectedRoute>} />
