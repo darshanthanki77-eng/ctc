@@ -72,9 +72,11 @@ const Withdrawal = () => {
     }
   };
 
+  const isINR = currency === 'INR';
+
   // 1. Regular Claim balances mapping
   const sourceBalances = {
-    balance: currency === 'INR' ? (currentUser?.availableBalanceINR || 0) : (currentUser?.availableBalance || 0),
+    balance: isINR ? (currentUser?.availableBalanceINR || 0) : (currentUser?.availableBalance || 0),
     mining: currentUser?.miningIncome || 0,
     level: currentUser?.levelIncome || 0,
     promotional: currentUser?.promotionalIncome || 0
