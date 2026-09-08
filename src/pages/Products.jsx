@@ -435,18 +435,17 @@ export default function Products() {
               ? ((currentAmount - minPrice) / (maxPrice - minPrice)) * 100
               : 100;
 
-            const isLiveTrading = pkg.packageType === 'live_trading' || pkg.name.toLowerCase().includes('live trading');
-            const isReferral = pkg.isReferralOnly || pkg.name.toLowerCase().includes('referral');
-            const profitDisplay = isLiveTrading 
-              ? '10% – 15%' 
-              : isReferral 
-              ? `${pkg.dailyProfit}%` 
-              : `${(pkg.dailyProfit / 2)}%`;
-            const durationDisplay = isLiveTrading 
-              ? 'monthly (Dynamic)' 
-              : isReferral 
-              ? 'daily' 
-              : 'every 12 hours';
+            const isLiveTrading = pkg.packageType === 'live_trading' || pkg.name?.toLowerCase().includes('live trading') || (pkg.monthlyRoiMin && pkg.monthlyRoiMax);
+            const isReferral = pkg.isReferralOnly || pkg.name?.toLowerCase().includes('referral');
+            
+            let rateDisplay = '';
+            if (isLiveTrading) {
+              rateDisplay = '10% - 15% in a month';
+            } else if (isReferral) {
+              rateDisplay = `${pkg.dailyProfit}% daily`;
+            } else {
+              rateDisplay = `${(pkg.dailyProfit / 2)}% every 12 hours`;
+            }
 
             return (
               <div
@@ -555,7 +554,7 @@ export default function Products() {
                       Profit Rate
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: cfg.color, marginTop: 1 }}>
-                      {profitDisplay} every {durationDisplay}
+                      {rateDisplay}
                     </div>
                   </div>
                 </div>
@@ -760,11 +759,11 @@ export default function Products() {
                     { label: 'Package Tier',    value: selectedPackage.name, bold: true },
                     { 
                       label: 'Profit Rate',     
-                      value: selectedPackage.packageType === 'live_trading' || selectedPackage.name.toLowerCase().includes('live trading')
-                        ? '10% – 15% Monthly Dynamic (Admin Set)'
-                        : selectedPackage.name.toLowerCase().includes('referral') 
+                      value: selectedPackage.packageType === 'live_trading' || selectedPackage.name?.toLowerCase().includes('live trading') || (selectedPackage.monthlyRoiMin && selectedPackage.monthlyRoiMax)
+                        ? '10% – 15% in a month (Admin Set)'
+                        : selectedPackage.name?.toLowerCase().includes('referral') 
                         ? `${selectedPackage.dailyProfit}%` 
-                        : `${(selectedPackage.dailyProfit / 2)}% ${selectedPackage.name.toLowerCase().includes('referral') ? 'daily' : 'every 12 hours'}`, 
+                        : `${(selectedPackage.dailyProfit / 2)}% ${selectedPackage.name?.toLowerCase().includes('referral') ? 'daily' : 'every 12 hours'}`, 
                       color: '#22c55e' 
                     },
                     { 
