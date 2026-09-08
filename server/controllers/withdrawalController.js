@@ -82,25 +82,36 @@ const requestWithdrawal = async (req, res, next) => {
       if (amount < 2000) {
         return res.status(400).json({ message: 'Minimum withdrawal amount is 2000 INR.' });
       }
+      if (!inrPaymentDetails || inrPaymentDetails.trim().length < 5) {
+        return res.status(400).json({ message: 'Valid INR payment details (UPI ID or Bank Account Details) are required.' });
+      }
     } else {
       if (amount < settings.minWithdrawalAmount) {
-        return res.status(400).json({ message: `Minimum withdrawal amount is ${settings.minWithdrawalAmount}` });
+        return res.status(400).json({ message: `Minimum withdrawal amount is ${settings.minWithdrawalAmount} USDT` });
       }
     }
     
-    // 2. User-specific Daily Throttling & Cooldowns
+    // 2. User-specific Daily Throttling & Cooldowns (Currency-aware)
+    const inrRate = settings.inrExchangeRate || 90;
+    const amountInUSD = isINR ? Number(amount) / inrRate : Number(amount);
+
     const now = new Date();
     const todayStart = new Date(now.setHours(0,0,0,0));
     
-    const todaysWithdrawals = await Withdrawal.aggregate([
-      { $match: { user: user._id, createdAt: { $gte: todayStart }, status: { $in: ['pending', 'completed', 'approved'] } } },
-      { $group: { _id: null, totalAmount: { $sum: "$amount" } } }
-    ]);
+    const todaysWithdrawals = await Withdrawal.find({
+      user: user._id,
+      createdAt: { $gte: todayStart },
+      status: { $in: ['pending', 'completed', 'approved'] }
+    });
     
-    const todayTotal = todaysWithdrawals.length ? todaysWithdrawals[0].totalAmount : 0;
-    if (todayTotal + amount > settings.maxDailyWithdrawalAmount) {
+    let todayTotalUSD = 0;
+    for (const w of todaysWithdrawals) {
+      todayTotalUSD += w.currency === 'INR' ? (w.amount / inrRate) : w.amount;
+    }
+
+    if (todayTotalUSD + amountInUSD > settings.maxDailyWithdrawalAmount) {
       await AuditLog.create({ action: 'PAYOUT_FAILURE', userId: user._id, details: { reason: 'Daily withdrawal limit exceeded', amount } });
-      return res.status(400).json({ message: `Daily withdrawal limit of ${settings.maxDailyWithdrawalAmount} exceeded` });
+      return res.status(400).json({ message: `Daily withdrawal limit of $${settings.maxDailyWithdrawalAmount} USD equivalent exceeded` });
     }
     
     const lastWithdrawal = await Withdrawal.findOne({ user: user._id }).sort({ createdAt: -1 });
@@ -147,14 +158,14 @@ const requestWithdrawal = async (req, res, next) => {
       }
     }
 
-    let targetAmount = amount;
+    let targetAmount = Number(amount);
     let userPkg = null;
 
     if (type === 'principal') {
       return res.status(400).json({ message: 'Emergency principal release (SOS withdraw) has been disabled.' });
     }
 
-    if (type === 'profit') {
+    if (type === 'profit' && !isINR) {
       if (targetAmount % 10 !== 0) {
         return res.status(400).json({ message: 'Withdrawal amount must be a multiple of 10' });
       }

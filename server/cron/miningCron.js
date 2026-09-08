@@ -196,6 +196,12 @@ const runMiningCronCycle = async (force = false) => {
     let idx = 0;
     for (let pkg of activePackages) {
       idx++;
+      
+      // STRICT RULE: Live Trading / Monthly packages are EXCLUDED from daily mining cron
+      if (pkg.packageId?.packageType === 'live_trading' || pkg.packageId?.roiFrequency === 'monthly' || pkg.packageId?.dailyProfit === 0) {
+        continue;
+      }
+
       const user = await User.findById(pkg.user);
       if (!user) continue;
 
@@ -415,7 +421,7 @@ const runMiningCronCycle = async (force = false) => {
       // Level Bonus Distribution based on Profit amount
       // Since level bonus also increases user totalEarning, it must also be cap-protected
       if (user.pins && user.pins > 0) {
-        await distributeLevelIncome(user._id, profitAmount, user.userId);
+        await distributeLevelIncome(user._id, profitAmount, user.userId, pkg.paymentMethod || 'INR');
       }
     }
 

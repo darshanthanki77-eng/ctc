@@ -32,10 +32,15 @@ const getPackageScalar = async (userId) => {
   return 1.0; // 100% profit distributed on levels (scalar disabled)
 };
 
-const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
+const distributeLevelIncome = async (userId, profitAmount, fromUserId, paymentMethod = 'Crypto') => {
   try {
     let currentUser = await User.findById(userId);
     if (!currentUser || currentUser.pins === 0) return;
+
+    const SystemSettings = require('../models/SystemSettings');
+    const settings = await SystemSettings.findOne() || { inrExchangeRate: 90 };
+    const inrRate = settings.inrExchangeRate || 90;
+    const round6 = (num) => Math.round(num * 1000000) / 1000000;
     
     let currentLevel = 1;
     const baseAmount = profitAmount * await getPackageScalar(userId);
@@ -107,8 +112,8 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
             status: 'credited'
           });
 
-          sponsorUser.levelIncome += totalIncome;
-          sponsorUser.totalEarning += totalIncome;
+          sponsorUser.levelIncome = round6(sponsorUser.levelIncome + totalIncome);
+          sponsorUser.totalEarning = round6(sponsorUser.totalEarning + totalIncome);
 
           // If sponsor has active staked package, redirect level income to lockedStakingIncome
           const activeStakedPkg = await UserPackage.findOne({
@@ -122,9 +127,14 @@ const distributeLevelIncome = async (userId, profitAmount, fromUserId) => {
           });
 
           if (activeStakedPkg) {
-            sponsorUser.lockedStakingIncome = (sponsorUser.lockedStakingIncome || 0) + totalIncome;
+            sponsorUser.lockedStakingIncome = round6((sponsorUser.lockedStakingIncome || 0) + totalIncome);
           } else {
-            sponsorUser.availableBalance += payoutAmount;
+            if (paymentMethod === 'INR') {
+              const payoutAmountINR = payoutAmount * inrRate;
+              sponsorUser.availableBalanceINR = round6((sponsorUser.availableBalanceINR || 0) + payoutAmountINR);
+            } else {
+              sponsorUser.availableBalance = round6(sponsorUser.availableBalance + payoutAmount);
+            }
           }
 
           const finalSponsorMultiplier = await getUserMultiplier(sponsorUser);

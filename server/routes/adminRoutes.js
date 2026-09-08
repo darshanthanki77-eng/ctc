@@ -30,7 +30,10 @@ const {
   togglePrincipalWithdrawal,
   runInrMigration,
   syncAllUserBalances,
-  extendStakingPeriod
+  extendStakingPeriod,
+  previewMonthlyLiveTradingRoi,
+  distributeMonthlyLiveTradingRoi,
+  getMonthlyLiveTradingHistory
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
@@ -109,5 +112,10 @@ router.route('/sync-balances').post(protect, admin, syncAllUserBalances);
 
 // Extend Staking Route
 router.route('/extend-staking').post(protect, admin, extendStakingPeriod);
+
+// Live Trading Monthly ROI Routes
+router.route('/live-trading/preview').get(protect, admin, previewMonthlyLiveTradingRoi);
+router.route('/live-trading/distribute').post(protect, admin, distributeMonthlyLiveTradingRoi);
+router.route('/live-trading/history').get(protect, admin, getMonthlyLiveTradingHistory);
 
 module.exports = router;

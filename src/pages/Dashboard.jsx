@@ -466,9 +466,15 @@ export default function Dashboard() {
             <div>
               <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block' }}>Wallet Balance</span>
               <span style={{ fontSize: 28, fontWeight: 800, color: 'var(--near-black)', display: 'block', margin: '4px 0 2px' }}>
-                ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {(currentUser?.availableBalanceINR > 0 || activePackages.some(p => p.paymentMethod === 'INR'))
+                  ? `₹${(currentUser?.availableBalanceINR || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                  : `$${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
               </span>
-              <span style={{ fontSize: 11, color: 'var(--muted-light)', fontWeight: 500 }}>Available USDT balance</span>
+              <span style={{ fontSize: 11, color: 'var(--muted-light)', fontWeight: 500 }}>
+                {(currentUser?.availableBalanceINR > 0 || activePackages.some(p => p.paymentMethod === 'INR'))
+                  ? (currentUser?.availableBalance > 0 ? `Available INR (₹${(currentUser?.availableBalanceINR || 0).toFixed(2)}) & USDT ($${(currentUser?.availableBalance || 0).toFixed(2)})` : 'Available INR balance')
+                  : 'Available USDT balance'}
+              </span>
             </div>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(243, 16, 253, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Wallet size={18} style={{ color: 'var(--pink)' }} />

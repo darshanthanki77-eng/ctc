@@ -48,6 +48,10 @@ const Withdrawal = () => {
     if (currentUser?.withdrawalWallet) {
       setWalletAddress(currentUser.withdrawalWallet);
     }
+    // Auto-detect currency preference based on balances and packages
+    if ((currentUser?.availableBalanceINR || 0) > 0 && (!currentUser?.availableBalance || currentUser?.availableBalance === 0)) {
+      setCurrency('INR');
+    }
   }, [currentUser]);
 
   const fetchHistory = async () => {
@@ -117,9 +121,9 @@ const Withdrawal = () => {
 
     if (isINR) {
       if (!amount || Number(amount) < 2000) return toast.error('Minimum withdrawal in INR is 2000');
-      if (!inrPaymentDetails) return toast.error('Please enter your Bank Details or UPI ID for payment');
+      if (!inrPaymentDetails || inrPaymentDetails.trim().length < 5) return toast.error('Please enter your Bank Details or UPI ID for payment');
     } else {
-      if (!amount || Number(amount) < 10) return toast.error('Minimum withdrawal is 10');
+      if (!amount || Number(amount) < 10) return toast.error('Minimum withdrawal is 10 USDT');
       if (Number(amount) % 10 !== 0) return toast.error('Withdrawal amount must be a multiple of 10');
       if (!walletAddress) return toast.error('Please enter your receiving wallet address');
     }
@@ -202,15 +206,15 @@ const Withdrawal = () => {
     ? currentUser.totalWithdrawn
     : history
         .filter(w => ['approved', 'completed', 'success'].includes(w.status?.toLowerCase()))
-        .reduce((sum, w) => sum + w.amount, 0);
+        .reduce((sum, w) => sum + (w.currency === 'INR' ? (w.amount / 90) : w.amount), 0);
 
   const stats = [
-    { title: 'Available Balance', value: currentUser?.availableBalance || 0, icon: Wallet, color: '#A020F0', bg: 'rgba(160, 32, 240, 0.08)' },
-    { title: 'Total Earnings', value: currentUser?.totalEarning || 0, icon: TrendingUp, color: '#22C55E', bg: 'rgba(34, 197, 94, 0.08)' },
-    { title: 'Copy Trade ROI', value: currentUser?.miningIncome || 0, icon: Cpu, color: '#00C6FF', bg: 'rgba(0, 198, 255, 0.08)' },
-    { title: 'Level Income', value: currentUser?.levelIncome || 0, icon: Layers, color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)' },
-    { title: 'Promotional Income', value: currentUser?.promotionalIncome || 0, icon: Gift, color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)' },
-    { title: 'Total Withdrawn', value: totalWithdrawn, icon: CheckCircle2, color: '#EC4899', bg: 'rgba(236, 72, 153, 0.08)' }
+    { title: 'Available INR Balance', value: currentUser?.availableBalanceINR || 0, symbol: '₹', icon: Wallet, color: '#A020F0', bg: 'rgba(160, 32, 240, 0.08)' },
+    { title: 'Available USDT Balance', value: currentUser?.availableBalance || 0, symbol: '$', icon: Wallet, color: '#00C6FF', bg: 'rgba(0, 198, 255, 0.08)' },
+    { title: 'Total Earnings', value: currentUser?.totalEarning || 0, symbol: '$', icon: TrendingUp, color: '#22C55E', bg: 'rgba(34, 197, 94, 0.08)' },
+    { title: 'Copy Trade ROI', value: currentUser?.miningIncome || 0, symbol: '$', icon: Cpu, color: '#00C6FF', bg: 'rgba(0, 198, 255, 0.08)' },
+    { title: 'Level Income', value: currentUser?.levelIncome || 0, symbol: '$', icon: Layers, color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)' },
+    { title: 'Total Withdrawn', value: totalWithdrawn, symbol: '$', icon: CheckCircle2, color: '#EC4899', bg: 'rgba(236, 72, 153, 0.08)' }
   ];
 
   return (
@@ -235,7 +239,7 @@ const Withdrawal = () => {
                 </div>
               </div>
               <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--near-black)', fontFamily: 'monospace' }}>
-                ${Number(item.value).toFixed(2)}
+                {item.symbol}{Number(item.value).toFixed(2)}
               </h3>
             </div>
           );
@@ -438,7 +442,13 @@ const Withdrawal = () => {
                 }}
               >
                 <Wallet size={16} style={{ marginRight: 6 }} />
-                {loading ? 'Processing transfer...' : (hasLandPackage && !isDateAllowed) ? 'Withdrawal Closed' : `Initiate Transfer — $${netPayout.toFixed(2)} USDT net`}
+                {loading 
+                  ? 'Processing transfer...' 
+                  : (hasLandPackage && !isDateAllowed) 
+                    ? 'Withdrawal Closed' 
+                    : isINR 
+                      ? `Initiate Transfer — ₹${netPayout.toFixed(2)} INR net` 
+                      : `Initiate Transfer — $${netPayout.toFixed(2)} USDT net`}
               </button>
             </form>
           </div>
@@ -455,15 +465,15 @@ const Withdrawal = () => {
                   <DollarSign size={17} style={{ color: 'var(--purple)' }} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Fee Structure</h3>
+                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Fee Structure ({currency})</h3>
                   <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>Net payout breakdown</p>
                 </div>
               </div>
 
 
               {[
-                { label: 'Gross Amount',         value: `$${grossAmount.toFixed(2)} USDT`,    color: 'var(--near-black)', badge: null },
-                { label: 'Withdrawal Fee',       value: `-$${withdrawalFee.toFixed(2)}`,      color: 'var(--red)',        badge: null },
+                { label: 'Gross Amount',         value: `${currency === 'INR' ? '₹' : '$'}${grossAmount.toFixed(2)} ${currency}`,    color: 'var(--near-black)', badge: null },
+                { label: 'Withdrawal Fee (10%)', value: `-${currency === 'INR' ? '₹' : '$'}${withdrawalFee.toFixed(2)}`,           color: 'var(--red)',        badge: null },
               ].map((r, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.05)', fontSize: 13 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -480,7 +490,7 @@ const Withdrawal = () => {
               }}>
                 <span style={{ fontWeight: 700, fontSize: 14 }}>Net Payout Received</span>
                 <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'monospace', background: 'var(--gradient-text)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                  ${netPayout.toFixed(2)} USDT
+                  {currency === 'INR' ? '₹' : '$'}{netPayout.toFixed(2)} {currency}
                 </span>
               </div>
             </div>
@@ -491,7 +501,9 @@ const Withdrawal = () => {
             }}>
               <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
               <p style={{ margin: 0, fontSize: 12, color: '#92400E', lineHeight: 1.6 }}>
-                The 10% allocation fee is distributed to node operators maintaining BSC liquidity. Minimum <strong>$10 USDT</strong> per claim.
+                {currency === 'INR' 
+                  ? 'The 10% processing fee applies. Payout will be transferred directly to your bank/UPI. Minimum ₹2,000 INR per claim.'
+                  : 'The 10% allocation fee is distributed to node operators maintaining BSC liquidity. Minimum $10 USDT per claim.'}
               </p>
           </div>
         </div>
@@ -512,9 +524,9 @@ const Withdrawal = () => {
             <thead>
               <tr>
                 <th className="p-4 pl-6">Date</th>
-                <th className="p-4">Wallet Address</th>
+                <th className="p-4">Destination / Wallet</th>
                 <th className="p-4 text-center">Amount</th>
-                <th className="p-4 text-center">Method</th>
+                <th className="p-4 text-center">Currency</th>
                 <th className="p-4 text-center">Status</th>
                 <th className="p-4 pr-6 text-right">Deduction</th>
               </tr>
@@ -533,6 +545,8 @@ const Withdrawal = () => {
                   const month = String(dateObj.getMonth() + 1).padStart(2, '0');
                   const year = dateObj.getFullYear();
                   const dateStr = `${day}/${month}/${year}`;
+                  const isINRRow = row.currency === 'INR';
+                  const rowSymbol = isINRRow ? '₹' : '$';
 
                   return (
                     <tr key={row._id || idx}>
@@ -541,22 +555,27 @@ const Withdrawal = () => {
                         {dateStr}
                       </td>
 
-                      {/* Wallet */}
+                      {/* Destination / Wallet */}
                       <td className="p-4" style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--muted)' }}>
-                        {row.walletAddress 
-                          ? `${row.walletAddress.substring(0, 6)}...${row.walletAddress.substring(row.walletAddress.length - 4)}` 
-                          : 'N/A'
+                        {isINRRow 
+                          ? (row.inrPaymentDetails ? (row.inrPaymentDetails.length > 25 ? `${row.inrPaymentDetails.substring(0, 25)}...` : row.inrPaymentDetails) : 'INR Transfer')
+                          : (row.walletAddress 
+                              ? `${row.walletAddress.substring(0, 6)}...${row.walletAddress.substring(row.walletAddress.length - 4)}` 
+                              : 'N/A'
+                            )
                         }
                       </td>
 
                       {/* Amount */}
                       <td className="p-4 text-center text-sm font-bold text-white">
-                        ${row.amount.toFixed(2)}
+                        {rowSymbol}{Number(row.amount).toFixed(2)}
                       </td>
 
                       {/* Method */}
                       <td className="p-4 text-center">
-                        <span className="badge badge-purple" style={{ fontSize: 10 }}>USDT</span>
+                        <span className={isINRRow ? "badge badge-green" : "badge badge-purple"} style={{ fontSize: 10 }}>
+                          {row.currency || 'USDT'}
+                        </span>
                       </td>
 
                       {/* Status */}
@@ -566,7 +585,7 @@ const Withdrawal = () => {
 
                       {/* Deduction */}
                       <td className="p-4 pr-6 text-right text-xs text-red-500 font-mono">
-                        -${row.deduction.toFixed(2)}
+                        -{rowSymbol}{Number(row.deduction || (row.amount * 0.1)).toFixed(2)}
                       </td>
                     </tr>
                   );

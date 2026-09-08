@@ -259,10 +259,20 @@ const claimRankBonus = async (req, res, next) => {
       stakingEndDate: { $gt: new Date() }
     });
 
+    const SystemSettings = require('../models/SystemSettings');
+    const settings = await SystemSettings.findOne() || { inrExchangeRate: 90 };
+    const inrRate = settings.inrExchangeRate || 90;
+    const hasINRPkg = await UserPackage.exists({ user: user._id, paymentMethod: 'INR' });
+
     if (activeStakedPkg) {
       user.lockedStakingIncome = (user.lockedStakingIncome || 0) + bonusAmount;
     } else {
-      user.availableBalance += bonusAmount;
+      if (hasINRPkg) {
+        const bonusAmountINR = bonusAmount * inrRate;
+        user.availableBalanceINR = Math.round(((user.availableBalanceINR || 0) + bonusAmountINR) * 1000000) / 1000000;
+      } else {
+        user.availableBalance = Math.round((user.availableBalance + bonusAmount) * 1000000) / 1000000;
+      }
     }
     user.totalEarning += bonusAmount;
     user.promotionalIncome += bonusAmount;

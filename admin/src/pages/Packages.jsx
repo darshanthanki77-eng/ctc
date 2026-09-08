@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit3, Save, Trash, AlertTriangle, Eye, ShieldCheck, Zap } from 'lucide-react';
+import { Plus, Edit3, Save, Trash, AlertTriangle, Eye, ShieldCheck, Zap, TrendingUp, DollarSign } from 'lucide-react';
 import api from '../api';
 import { toast } from 'react-toastify';
 
@@ -14,6 +14,9 @@ const Packages = () => {
     minAmount: '',
     maxAmount: '',
     dailyProfitPercent: '',
+    packageType: 'standard',
+    monthlyRoiMin: 10,
+    monthlyRoiMax: 15,
     isReferralOnly: false,
     status: true
   });
@@ -37,7 +40,7 @@ const Packages = () => {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!newPackage.name || !newPackage.minAmount || !newPackage.maxAmount || !newPackage.dailyProfitPercent) {
+    if (!newPackage.name || !newPackage.minAmount || !newPackage.maxAmount) {
       return toast.error('Please fill in all details');
     }
     try {
@@ -45,11 +48,23 @@ const Packages = () => {
         ...newPackage,
         minAmount: Number(newPackage.minAmount),
         maxAmount: Number(newPackage.maxAmount),
-        dailyProfitPercent: Number(newPackage.dailyProfitPercent),
+        dailyProfitPercent: newPackage.packageType === 'live_trading' ? 0 : Number(newPackage.dailyProfitPercent || 0),
+        monthlyRoiMin: Number(newPackage.monthlyRoiMin || 10),
+        monthlyRoiMax: Number(newPackage.monthlyRoiMax || 15)
       });
-      toast.success('Staking package created successfully');
+      toast.success('Package created successfully');
       setIsCreating(false);
-      setNewPackage({ name: '', minAmount: '', maxAmount: '', dailyProfitPercent: '', isReferralOnly: false, status: true });
+      setNewPackage({ 
+        name: '', 
+        minAmount: '', 
+        maxAmount: '', 
+        dailyProfitPercent: '', 
+        packageType: 'standard', 
+        monthlyRoiMin: 10, 
+        monthlyRoiMax: 15, 
+        isReferralOnly: false, 
+        status: true 
+      });
       fetchPackages();
     } catch (error) {
       toast.error('Failed to create package');
@@ -67,7 +82,9 @@ const Packages = () => {
         ...editPackage,
         minAmount: Number(editPackage.minAmount),
         maxAmount: Number(editPackage.maxAmount),
-        dailyProfitPercent: Number(editPackage.dailyProfitPercent),
+        dailyProfitPercent: editPackage.packageType === 'live_trading' ? 0 : Number(editPackage.dailyProfitPercent || 0),
+        monthlyRoiMin: Number(editPackage.monthlyRoiMin || 10),
+        monthlyRoiMax: Number(editPackage.monthlyRoiMax || 15)
       });
       toast.success('Package updated successfully');
       setIsEditing(null);
@@ -82,8 +99,8 @@ const Packages = () => {
       {/* Header card with Create button */}
       <div className="flex justify-between items-center bg-[#0B0F1A] border border-gray-800 p-6 rounded-3xl">
         <div>
-          <h2 className="text-xl font-bold text-white">Staking Packages ({packages.length})</h2>
-          <p className="text-xs text-gray-500 mt-1">Configure entry thresholds, profit rates, and referral locks</p>
+          <h2 className="text-xl font-bold text-white">Investment Packages ({packages.length})</h2>
+          <p className="text-xs text-gray-500 mt-1">Configure standard daily 0.5% packages and dynamic 10%-15% monthly Live Trading packages</p>
         </div>
         <button
           onClick={() => setIsCreating(!isCreating)}
@@ -97,50 +114,89 @@ const Packages = () => {
       {/* Package Creation Form */}
       {isCreating && (
         <form onSubmit={handleCreate} className="bg-[#0B0F1A] border border-[#A020F0]/30 p-6 rounded-3xl grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-3">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create Staking Package</h3>
+          <div className="md:col-span-3 flex justify-between items-center">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create Investment Package</h3>
+            <div className="flex items-center gap-3">
+              <label className="text-xs font-bold text-gray-400 uppercase">Type:</label>
+              <select
+                value={newPackage.packageType}
+                onChange={e => setNewPackage({ ...newPackage, packageType: e.target.value })}
+                className="bg-[#161B2A] border border-gray-700 rounded-lg px-3 py-1 text-xs text-white focus:outline-none"
+              >
+                <option value="standard">Standard Daily 0.5%</option>
+                <option value="live_trading">Live Trading (10%-15% Monthly)</option>
+              </select>
+            </div>
           </div>
+
           <div>
             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Package Name</label>
             <input
               type="text"
-              placeholder="e.g. SOS Package 1"
+              placeholder="e.g. Live Trading Tier 1"
               value={newPackage.name}
               onChange={e => setNewPackage({ ...newPackage, name: e.target.value })}
               className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
             />
           </div>
+
           <div>
             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Min Amount ($)</label>
             <input
               type="number"
-              placeholder="e.g. 100"
+              placeholder="e.g. 1100"
               value={newPackage.minAmount}
               onChange={e => setNewPackage({ ...newPackage, minAmount: e.target.value })}
               className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
             />
           </div>
+
           <div>
             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Max Amount ($)</label>
             <input
               type="number"
-              placeholder="e.g. 1000"
+              placeholder="e.g. 5000"
               value={newPackage.maxAmount}
               onChange={e => setNewPackage({ ...newPackage, maxAmount: e.target.value })}
               className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Daily Profit Rate (%)</label>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="e.g. 0.50"
-              value={newPackage.dailyProfitPercent}
-              onChange={e => setNewPackage({ ...newPackage, dailyProfitPercent: e.target.value })}
-              className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
-            />
-          </div>
+
+          {newPackage.packageType === 'standard' ? (
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Daily Profit Rate (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="e.g. 0.50"
+                value={newPackage.dailyProfitPercent}
+                onChange={e => setNewPackage({ ...newPackage, dailyProfitPercent: e.target.value })}
+                className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Monthly ROI Range (%)</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder="Min 10"
+                  value={newPackage.monthlyRoiMin}
+                  onChange={e => setNewPackage({ ...newPackage, monthlyRoiMin: e.target.value })}
+                  className="w-1/2 bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
+                />
+                <span className="text-gray-500">-</span>
+                <input
+                  type="number"
+                  placeholder="Max 15"
+                  value={newPackage.monthlyRoiMax}
+                  onChange={e => setNewPackage({ ...newPackage, monthlyRoiMax: e.target.value })}
+                  className="w-1/2 bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 pt-6">
             <input
               type="checkbox"
@@ -151,6 +207,7 @@ const Packages = () => {
             />
             <label htmlFor="isReferralOnly" className="text-xs font-bold text-gray-400 uppercase cursor-pointer">Sponsor Referral Lock ($20 entry)</label>
           </div>
+
           <div className="flex items-end justify-end">
             <button
               type="submit"
@@ -171,11 +228,17 @@ const Packages = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {packages.map((pkg) => {
             const isEditingThis = isEditing === pkg._id;
+            const isLiveTrading = pkg.packageType === 'live_trading' || pkg.name.toLowerCase().includes('live trading');
+
             return (
               <div
                 key={pkg._id}
                 className={`bg-[#0B0F1A] border rounded-3xl p-6 relative overflow-hidden transition-all duration-300 ${
-                  isEditingThis ? 'border-[#A020F0]' : 'border-gray-800'
+                  isEditingThis 
+                    ? 'border-[#A020F0]' 
+                    : isLiveTrading 
+                    ? 'border-[#A020F0]/40 shadow-[0_0_20px_rgba(160,32,240,0.1)]' 
+                    : 'border-gray-800'
                 }`}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-white/[0.005] pointer-events-none"></div>
@@ -190,9 +253,14 @@ const Packages = () => {
                         className="bg-gray-800 text-white text-base font-bold rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#A020F0] w-full"
                       />
                     ) : (
-                      <h3 className="text-lg font-extrabold text-white">{pkg.name}</h3>
+                      <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                        {isLiveTrading && <Zap size={16} className="text-[#FF00FF]" />}
+                        {pkg.name}
+                      </h3>
                     )}
-                    <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Staking Tier</span>
+                    <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">
+                      {isLiveTrading ? '⚡ Live Trading Tier (Monthly ROI)' : 'Staking Tier (Daily 0.5%)'}
+                    </span>
                   </div>
                   <div className="flex gap-1.5">
                     {isEditingThis ? (
@@ -215,7 +283,7 @@ const Packages = () => {
 
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between items-center py-2 border-b border-gray-800/30">
-                    <span className="text-xs text-gray-400 font-medium">Staking Thresholds</span>
+                    <span className="text-xs text-gray-400 font-medium">Investment Thresholds</span>
                     {isEditingThis ? (
                       <div className="flex items-center gap-1.5">
                         <input
@@ -233,13 +301,17 @@ const Packages = () => {
                         />
                       </div>
                     ) : (
-                      <span className="text-sm font-black text-white font-mono">${pkg.minAmount} - ${pkg.maxAmount}</span>
+                      <span className="text-sm font-black text-white font-mono">${pkg.minAmount.toLocaleString()} - ${pkg.maxAmount.toLocaleString()}</span>
                     )}
                   </div>
 
                   <div className="flex justify-between items-center py-2 border-b border-gray-800/30">
-                    <span className="text-xs text-gray-400 font-medium">Daily ROI Earning</span>
-                    {isEditingThis ? (
+                    <span className="text-xs text-gray-400 font-medium">ROI Earning Model</span>
+                    {isLiveTrading ? (
+                      <span className="text-sm font-black text-[#FF00FF] font-mono">
+                        10% – 15% Monthly Dynamic
+                      </span>
+                    ) : isEditingThis ? (
                       <input
                         type="number"
                         step="0.01"
@@ -248,8 +320,15 @@ const Packages = () => {
                         className="w-16 bg-gray-800 text-white text-xs font-bold text-center rounded py-0.5 focus:outline-none"
                       />
                     ) : (
-                      <span className="text-sm font-black text-emerald-400 font-mono">+{pkg.dailyProfitPercent}%</span>
+                      <span className="text-sm font-black text-emerald-400 font-mono">+{pkg.dailyProfitPercent}% Daily</span>
                     )}
+                  </div>
+
+                  <div className="flex justify-between items-center py-2 border-b border-gray-800/30">
+                    <span className="text-xs text-gray-400 font-medium">Payout Mechanism</span>
+                    <span className="text-xs font-bold text-gray-300 font-mono">
+                      {isLiveTrading ? '50% Investor • 30% Levels' : '100% Investor Withdrawable'}
+                    </span>
                   </div>
 
                   <div className="flex justify-between items-center py-2 border-b border-gray-800/30">
@@ -260,6 +339,11 @@ const Packages = () => {
 
                 {/* Flags */}
                 <div className="flex flex-wrap gap-2">
+                  {isLiveTrading && (
+                    <div className="px-2 py-1 bg-[#A020F0]/15 border border-[#A020F0]/30 text-[#FF00FF] rounded text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
+                      <Zap size={10} /> Monthly Admin Trigger Only
+                    </div>
+                  )}
                   {pkg.isReferralOnly && (
                     <div className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
                       <Zap size={10} /> Referral Only ($20 Entry)

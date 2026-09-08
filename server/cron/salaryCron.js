@@ -198,6 +198,10 @@ const pay7thSalary = async () => {
 
       const salaryPayout = salaryMap[user.rank];
       if (salaryPayout) {
+        const SystemSettings = require('../models/SystemSettings');
+        const settings = await SystemSettings.findOne() || { inrExchangeRate: 90 };
+        const inrRate = settings.inrExchangeRate || 90;
+
         const activeStakedPkg = await UserPackage.findOne({
           user: user._id,
           status: 'active',
@@ -208,10 +212,17 @@ const pay7thSalary = async () => {
           stakingEndDate: { $gt: new Date() }
         });
 
+        const hasINRPkg = await UserPackage.exists({ user: user._id, paymentMethod: 'INR' });
+
         if (activeStakedPkg) {
           user.lockedStakingIncome = (user.lockedStakingIncome || 0) + salaryPayout;
         } else {
-          user.availableBalance += salaryPayout;
+          if (hasINRPkg) {
+            const salaryPayoutINR = salaryPayout * inrRate;
+            user.availableBalanceINR = Math.round(((user.availableBalanceINR || 0) + salaryPayoutINR) * 1000000) / 1000000;
+          } else {
+            user.availableBalance = Math.round((user.availableBalance + salaryPayout) * 1000000) / 1000000;
+          }
         }
 
         user.totalEarning += salaryPayout;

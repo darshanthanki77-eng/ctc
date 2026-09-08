@@ -463,35 +463,41 @@ const Withdrawals = () => {
                   </span>
                 </div>
                 <div className="flex flex-col gap-1.5 text-xs">
-                  <span className="text-gray-400">Destination Address</span>
+                  <span className="text-gray-400">
+                    {selectedWithdrawalForApproval.currency === 'INR' ? 'INR Payout Details' : 'Destination Address'}
+                  </span>
                   <div className="flex items-center gap-2 bg-gray-800/50 border border-gray-700/30 rounded-xl px-3 py-2">
                     <span className="font-mono text-white text-[11px] break-all flex-1 select-all leading-relaxed">
-                      {selectedWithdrawalForApproval.walletAddress}
+                      {selectedWithdrawalForApproval.currency === 'INR' 
+                        ? (selectedWithdrawalForApproval.inrPaymentDetails || 'INR Transfer')
+                        : selectedWithdrawalForApproval.walletAddress}
                     </span>
                     <button
-                      onClick={() => handleCopyAddress(selectedWithdrawalForApproval.walletAddress)}
-                      title="Copy address"
+                      onClick={() => handleCopyAddress(selectedWithdrawalForApproval.currency === 'INR' ? (selectedWithdrawalForApproval.inrPaymentDetails || '') : (selectedWithdrawalForApproval.walletAddress || ''))}
+                      title="Copy details"
                       className="shrink-0 text-gray-400 hover:text-[#00FF99] transition-colors"
                     >
-                      {copiedAddress === selectedWithdrawalForApproval.walletAddress ? <CheckCheck size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
+                      {copiedAddress === (selectedWithdrawalForApproval.currency === 'INR' ? selectedWithdrawalForApproval.inrPaymentDetails : selectedWithdrawalForApproval.walletAddress) ? <CheckCheck size={14} className="text-[#00FF99]" /> : <Copy size={14} />}
                     </button>
                   </div>
                 </div>
                 <div className="border-t border-gray-800/50 my-2 pt-2 grid grid-cols-3 gap-2 text-center">
                   <div>
                     <span className="block text-[9px] text-gray-500 font-bold uppercase">Requested</span>
-                    <span className="text-sm font-extrabold text-white">${Number(selectedWithdrawalForApproval.amount).toFixed(2)}</span>
+                    <span className="text-sm font-extrabold text-white">
+                      {selectedWithdrawalForApproval.currency === 'INR' ? '₹' : '$'}{Number(selectedWithdrawalForApproval.amount).toFixed(2)}
+                    </span>
                   </div>
                   <div>
                     <span className="block text-[9px] text-gray-500 font-bold uppercase">Fee</span>
                     <span className="text-sm font-extrabold text-red-400">
-                      ${Number(selectedWithdrawalForApproval.amount - (selectedWithdrawalForApproval.netPayable ?? (selectedWithdrawalForApproval.type === 'principal' ? selectedWithdrawalForApproval.amount * 0.8 : selectedWithdrawalForApproval.amount * 0.9))).toFixed(2)}
+                      {selectedWithdrawalForApproval.currency === 'INR' ? '₹' : '$'}{Number(selectedWithdrawalForApproval.amount - (selectedWithdrawalForApproval.netPayable ?? (selectedWithdrawalForApproval.type === 'principal' ? selectedWithdrawalForApproval.amount * 0.8 : selectedWithdrawalForApproval.amount * 0.9))).toFixed(2)}
                     </span>
                   </div>
                   <div>
                     <span className="block text-[9px] text-gray-500 font-bold uppercase">Net Payout</span>
                     <span className="text-sm font-extrabold text-[#00C6FF]">
-                      ${Number(selectedWithdrawalForApproval.netPayable ?? (selectedWithdrawalForApproval.type === 'principal' ? selectedWithdrawalForApproval.amount * 0.8 : selectedWithdrawalForApproval.amount * 0.9)).toFixed(2)}
+                      {selectedWithdrawalForApproval.currency === 'INR' ? '₹' : '$'}{Number(selectedWithdrawalForApproval.netPayable ?? (selectedWithdrawalForApproval.type === 'principal' ? selectedWithdrawalForApproval.amount * 0.8 : selectedWithdrawalForApproval.amount * 0.9)).toFixed(2)}
                     </span>
                   </div>
                 </div>

@@ -69,6 +69,7 @@ const Users = () => {
     email: '',
     isActive: false,
     availableBalance: 0,
+    availableBalanceINR: 0,
     miningIncome: 0,
     referralIncome: 0,
     levelIncome: 0,
@@ -133,6 +134,7 @@ const Users = () => {
       email: user.email || '',
       isActive: user.isActive || false,
       availableBalance: user.availableBalance || 0,
+      availableBalanceINR: user.availableBalanceINR || 0,
       miningIncome: user.miningIncome || 0,
       referralIncome: user.referralIncome || 0,
       levelIncome: user.levelIncome || 0,
@@ -396,7 +398,10 @@ const Users = () => {
                     </td>
                     <td className="px-6 py-4 font-mono text-gray-400">{user.sponsorId || 'None'}</td>
                     <td className="px-6 py-4 font-bold text-white">${Number(user.totalInvestment || 0).toFixed(2)}</td>
-                    <td className="px-6 py-4 font-bold text-[#00C6FF]">${Number(user.availableBalance || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 font-bold">
+                      <div className="text-emerald-400 font-mono">₹{Number(user.availableBalanceINR || 0).toFixed(2)}</div>
+                      <div className="text-[11px] text-gray-500 font-mono">${Number(user.availableBalance || 0).toFixed(2)} USDT</div>
+                    </td>
                     <td className="px-6 py-4">
                       {user.isBlocked ? (
                         <span className="inline-flex px-2 py-1 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">Blocked</span>
@@ -682,7 +687,17 @@ const Users = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Available Balance ($)</label>
+                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Available Balance (₹ INR)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editForm.availableBalanceINR}
+                        onChange={(e) => setEditForm({ ...editForm, availableBalanceINR: e.target.value })}
+                        className="w-full bg-[#161B2A]/80 border border-gray-700/50 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#A020F0]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Available Balance ($ USDT)</label>
                       <input
                         type="number"
                         step="0.01"
@@ -932,8 +947,9 @@ const Users = () => {
                   {/* Financial Metrics */}
                   <div className="grid grid-cols-2 gap-4">
                     {[
-                      { title: 'Total Investment Staked', value: `$${Number(selectedUser.totalInvestment || 0).toFixed(2)}`, color: 'text-emerald-400' },
-                      { title: 'Available Balance', value: `$${Number(selectedUser.availableBalance || 0).toFixed(2)}`, color: 'text-[#00C6FF]' },
+                      { title: 'Total Investment Staked', value: `$${Number(selectedUser.totalInvestment || 0).toFixed(2)}`, color: 'text-white' },
+                      { title: 'Available Balance (INR)', value: `₹${Number(selectedUser.availableBalanceINR || 0).toFixed(2)}`, color: 'text-emerald-400' },
+                      { title: 'Available Balance (USDT)', value: `$${Number(selectedUser.availableBalance || 0).toFixed(2)}`, color: 'text-[#00C6FF]' },
                       { title: 'Copy Trade ROI', value: `$${Number(selectedUser.miningIncome || 0).toFixed(2)}`, color: 'text-[#A020F0]' },
                       { title: 'Referral & Level Income', value: `$${Number((selectedUser.referralIncome || 0) + (selectedUser.levelIncome || 0)).toFixed(2)}`, color: 'text-[#FF00FF]' },
                       { title: 'Total Withdrawn', value: `$${Number(selectedUser.totalWithdrawn || 0).toFixed(2)}`, color: 'text-rose-400', fullWidth: true }

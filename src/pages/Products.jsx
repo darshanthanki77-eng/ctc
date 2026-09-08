@@ -19,10 +19,14 @@ const PKG_CONFIG = {
   zap:      { icon: Zap,       color: '#F310FD', gradient: 'linear-gradient(135deg, #F310FD, #a855f7)' },
   star:     { icon: Star,      color: '#A855F7', gradient: 'linear-gradient(135deg, #A855F7, #7c3aed)' },
   lock:     { icon: Lock,      color: '#F59E0B', gradient: 'linear-gradient(135deg, #F59E0B, #fb923c)' },
+  live1:    { icon: Zap,       color: '#10B981', gradient: 'linear-gradient(135deg, #10B981, #059669)' },
+  live2:    { icon: Sparkles,  color: '#8B5CF6', gradient: 'linear-gradient(135deg, #8B5CF6, #D946EF)' },
 };
 
 const getPkgStyle = (name) => {
   const lower = name.toLowerCase();
+  if (lower.includes('live trading tier 1') || (lower.includes('live trading') && lower.includes('1'))) return PKG_CONFIG.live1;
+  if (lower.includes('live trading tier 2') || (lower.includes('live trading') && lower.includes('2'))) return PKG_CONFIG.live2;
   if (lower.includes('package 1') || lower.includes('100 package')) return PKG_CONFIG.trending;
   if (lower.includes('package 2') || lower.includes('500 package')) return PKG_CONFIG.shield;
   if (lower.includes('package 3')) return PKG_CONFIG.zap;
@@ -406,8 +410,10 @@ export default function Products() {
               if (lower.includes('package 2') || lower.includes('500 package')) return 2;
               if (lower.includes('package 3')) return 3;
               if (lower.includes('package 4')) return 4;
-              if (lower.includes('land security')) return 5;
-              if (lower.includes('referral')) return 6;
+              if (lower.includes('live trading tier 1') || (lower.includes('live trading') && lower.includes('1'))) return 5;
+              if (lower.includes('live trading tier 2') || (lower.includes('live trading') && lower.includes('2'))) return 6;
+              if (lower.includes('land security')) return 7;
+              if (lower.includes('referral')) return 8;
               return 99;
             };
             return getOrder(a.name) - getOrder(b.name);
@@ -429,11 +435,16 @@ export default function Products() {
               ? ((currentAmount - minPrice) / (maxPrice - minPrice)) * 100
               : 100;
 
+            const isLiveTrading = pkg.packageType === 'live_trading' || pkg.name.toLowerCase().includes('live trading');
             const isReferral = pkg.isReferralOnly || pkg.name.toLowerCase().includes('referral');
-            const profitDisplay = isReferral 
+            const profitDisplay = isLiveTrading 
+              ? '10% – 15%' 
+              : isReferral 
               ? `${pkg.dailyProfit}%` 
               : `${(pkg.dailyProfit / 2)}%`;
-            const durationDisplay = isReferral 
+            const durationDisplay = isLiveTrading 
+              ? 'monthly (Dynamic)' 
+              : isReferral 
               ? 'daily' 
               : 'every 12 hours';
 
@@ -677,7 +688,7 @@ export default function Products() {
                     <CheckCircle size={11} /> Secured on BSC
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={11} /> Mon–Fri cycle
+                    <Clock size={11} /> {isLiveTrading ? 'Monthly Dynamic (Admin Triggered)' : 'Mon–Fri cycle'}
                   </span>
                 </div>
               </div>
@@ -747,7 +758,21 @@ export default function Products() {
                 }}>
                   {[
                     { label: 'Package Tier',    value: selectedPackage.name, bold: true },
-                    { label: 'Profit Rate',     value: selectedPackage.name.toLowerCase().includes('referral') ? `${selectedPackage.dailyProfit}%` : `${(selectedPackage.dailyProfit / 2)}% ${selectedPackage.name.toLowerCase().includes('referral') ? 'daily' : 'every 12 hours'}`, color: '#22c55e' },
+                    { 
+                      label: 'Profit Rate',     
+                      value: selectedPackage.packageType === 'live_trading' || selectedPackage.name.toLowerCase().includes('live trading')
+                        ? '10% – 15% Monthly Dynamic (Admin Set)'
+                        : selectedPackage.name.toLowerCase().includes('referral') 
+                        ? `${selectedPackage.dailyProfit}%` 
+                        : `${(selectedPackage.dailyProfit / 2)}% ${selectedPackage.name.toLowerCase().includes('referral') ? 'daily' : 'every 12 hours'}`, 
+                      color: '#22c55e' 
+                    },
+                    { 
+                      label: 'Distribution Model',
+                      value: selectedPackage.packageType === 'live_trading' || selectedPackage.name.toLowerCase().includes('live trading')
+                        ? '50% Investor • 30% Level Network'
+                        : '100% Direct to Available Balance'
+                    },
                     { label: 'Staking Capital', value: `$${Number(investmentAmount || 0).toLocaleString()} USDT`, color: '#F310FD', big: true },
                     {
                       label: selectedPackage.name && selectedPackage.name.toLowerCase().includes('land') ? 'Ceiling (1.0×)' : 'Ceiling (4.0×)',

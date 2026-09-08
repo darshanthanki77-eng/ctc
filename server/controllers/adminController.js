@@ -369,10 +369,14 @@ const rejectWithdrawal = async (req, res, next) => {
     withdrawal.approvedAt = Date.now();
     await withdrawal.save();
 
-    // Revert availableBalance back to the user
+    // Revert available balance back to the user
     const user = await User.findById(withdrawal.user);
     if (user) {
-      user.availableBalance += withdrawal.amount;
+      if (withdrawal.currency === 'INR') {
+        user.availableBalanceINR = Math.round(((user.availableBalanceINR || 0) + withdrawal.amount) * 1000000) / 1000000;
+      } else {
+        user.availableBalance = Math.round((user.availableBalance + withdrawal.amount) * 1000000) / 1000000;
+      }
       await user.save();
     }
 
@@ -727,6 +731,7 @@ const updateUser = async (req, res, next) => {
       email,
       isActive,
       availableBalance,
+      availableBalanceINR,
       miningIncome,
       referralIncome,
       levelIncome,
@@ -750,6 +755,7 @@ const updateUser = async (req, res, next) => {
     if (email !== undefined) user.email = email;
     if (isActive !== undefined) user.isActive = isActive;
     if (availableBalance !== undefined) user.availableBalance = Number(availableBalance);
+    if (availableBalanceINR !== undefined) user.availableBalanceINR = Number(availableBalanceINR);
     if (miningIncome !== undefined) user.miningIncome = Number(miningIncome);
     if (referralIncome !== undefined) user.referralIncome = Number(referralIncome);
     if (levelIncome !== undefined) user.levelIncome = Number(levelIncome);
@@ -1394,40 +1400,73 @@ const syncAllUserBalances = async (req, res, next) => {
     const User = require('../models/User');
     const UserPackage = require('../models/UserPackage');
     const Withdrawal = require('../models/Withdrawal');
+    const SystemSettings = require('../models/SystemSettings');
+
+    const settings = await SystemSettings.findOne() || { inrExchangeRate: 90 };
+    const inrRate = settings.inrExchangeRate || 90;
 
     const users = await User.find();
     const report = [];
 
     for (const u of users) {
       const userPackages = await UserPackage.find({ user: u._id });
-      let activeStakedROI = 0;
+      let activeStakedROI_INR = 0;
+      let activeStakedROI_USDT = 0;
+      let hasINR = false;
+      let hasCrypto = false;
       
       for (const p of userPackages) {
         const isStakedPkg = p.isStaked || p.stakingEnabled;
+        const isINR = p.paymentMethod === 'INR';
+        if (isINR) hasINR = true;
+        else hasCrypto = true;
+
         if (isStakedPkg && p.status === 'active') {
-          // If staking is still active, the compounding interest is locked in the package
-          activeStakedROI += Math.max(0, (p.compoundingBalance || 0) - (p.amount || 0));
+          const compROI = Math.max(0, (p.compoundingBalance || 0) - (p.amount || 0));
+          if (isINR) {
+            activeStakedROI_INR += compROI * inrRate;
+          } else {
+            activeStakedROI_USDT += compROI;
+          }
         }
       }
 
-      const withdrawals = await Withdrawal.find({ user: u._id, status: { $ne: 'rejected' } });
-      const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0);
-      
-      // Expected Available Balance formula
-      const expectedBalance = (u.miningIncome || 0) + (u.referralIncome || 0) + (u.levelIncome || 0) + (u.promotionalIncome || 0) - activeStakedROI - (u.lockedStakingIncome || 0) - totalWithdrawn;
-      
-      const oldBalance = u.availableBalance || 0;
-      const roundedExpected = Math.round(expectedBalance * 100) / 100;
+      const inrWithdrawals = await Withdrawal.find({ user: u._id, currency: 'INR', status: { $ne: 'rejected' } });
+      const totalWithdrawnINR = inrWithdrawals.reduce((sum, w) => sum + w.amount, 0);
 
-      if (Math.abs(oldBalance - roundedExpected) > 0.05) {
-        u.availableBalance = Math.max(0, roundedExpected);
+      const usdtWithdrawals = await Withdrawal.find({ user: u._id, currency: { $ne: 'INR' }, status: { $ne: 'rejected' } });
+      const totalWithdrawnUSDT = usdtWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+
+      let expectedINR = 0;
+      let expectedUSDT = 0;
+
+      if (hasINR && !hasCrypto) {
+        const totalIncomeUSD = (u.miningIncome || 0) + (u.referralIncome || 0) + (u.levelIncome || 0) + (u.promotionalIncome || 0);
+        expectedINR = Math.max(0, Math.round((totalIncomeUSD * inrRate - activeStakedROI_INR - totalWithdrawnINR) * 100) / 100);
+        expectedUSDT = 0;
+      } else if (!hasINR && hasCrypto) {
+        const totalIncomeUSD = (u.miningIncome || 0) + (u.referralIncome || 0) + (u.levelIncome || 0) + (u.promotionalIncome || 0);
+        expectedUSDT = Math.max(0, Math.round((totalIncomeUSD - activeStakedROI_USDT - (u.lockedStakingIncome || 0) - totalWithdrawnUSDT) * 100) / 100);
+        expectedINR = 0;
+      } else {
+        expectedINR = Math.max(0, u.availableBalanceINR || 0);
+        expectedUSDT = Math.max(0, u.availableBalance || 0);
+      }
+
+      const oldINR = u.availableBalanceINR || 0;
+      const oldUSDT = u.availableBalance || 0;
+
+      if (Math.abs(oldINR - expectedINR) > 0.05 || Math.abs(oldUSDT - expectedUSDT) > 0.05) {
+        u.availableBalanceINR = expectedINR;
+        u.availableBalance = expectedUSDT;
         await u.save();
         report.push({
           userId: u.userId,
           fullName: u.fullName,
-          oldBalance,
-          newBalance: u.availableBalance,
-          difference: roundedExpected - oldBalance
+          oldINR,
+          newINR: expectedINR,
+          oldUSDT,
+          newUSDT: expectedUSDT
         });
       }
     }
@@ -1523,7 +1562,304 @@ const extendStakingPeriod = async (req, res, next) => {
   }
 };
 
+const MonthlyRoiDistribution = require('../models/MonthlyRoiDistribution');
 
+const previewMonthlyLiveTradingRoi = async (req, res, next) => {
+  try {
+    const { monthYear = new Date().toISOString().substring(0, 7), tier1RoiPercent = 12, tier2RoiPercent = 12 } = req.query;
+    
+    const t1Percent = Number(tier1RoiPercent) || 12;
+    const t2Percent = Number(tier2RoiPercent) || 12;
+
+    const round6 = (num) => Math.round(num * 1000000) / 1000000;
+    const settings = await SystemSettings.findOne() || { inrExchangeRate: 90 };
+    const inrRate = settings.inrExchangeRate || 90;
+
+    const livePackages = await UserPackage.find({
+      status: 'active',
+      endDate: { $gt: new Date() }
+    }).populate('packageId').populate('user', 'userId fullName email availableBalance availableBalanceINR totalInvestment totalEarning');
+
+    const filtered = livePackages.filter(p => p.packageId && p.packageId.packageType === 'live_trading');
+
+    const existingDistribution = await MonthlyRoiDistribution.findOne({ monthYear, status: 'success' });
+
+    let tier1Count = 0;
+    let tier1Capital = 0;
+    let tier1InvestorPayoutUSD = 0;
+    let tier1LevelPayoutUSD = 0;
+
+    let tier2Count = 0;
+    let tier2Capital = 0;
+    let tier2InvestorPayoutUSD = 0;
+    let tier2LevelPayoutUSD = 0;
+
+    const details = filtered.map(pkg => {
+      const isTier2 = pkg.amount >= 10000 || (pkg.packageId && pkg.packageId.minAmount >= 10000);
+      const tierName = isTier2 ? 'Tier 2 ($10,000 - $25,000)' : 'Tier 1 ($1,100 - $5,000)';
+      const roiRate = isTier2 ? t2Percent : t1Percent;
+
+      const grossRoiUSD = round6(pkg.amount * (roiRate / 100));
+      const investorPayoutUSD = round6(grossRoiUSD * 0.50);
+      const levelBaseAmountUSD = round6(grossRoiUSD * 0.30);
+      const investorPayoutINR = round6(investorPayoutUSD * inrRate);
+
+      if (isTier2) {
+        tier2Count++;
+        tier2Capital += pkg.amount;
+        tier2InvestorPayoutUSD += investorPayoutUSD;
+        tier2LevelPayoutUSD += levelBaseAmountUSD;
+      } else {
+        tier1Count++;
+        tier1Capital += pkg.amount;
+        tier1InvestorPayoutUSD += investorPayoutUSD;
+        tier1LevelPayoutUSD += levelBaseAmountUSD;
+      }
+
+      return {
+        userPackageId: pkg._id,
+        userId: pkg.user?.userId || pkg.userId,
+        userName: pkg.user?.fullName || 'N/A',
+        packageTier: tierName,
+        amount: pkg.amount,
+        paymentMethod: pkg.paymentMethod || 'INR',
+        roiPercent: roiRate,
+        grossRoiUSD,
+        investorPayoutUSD,
+        investorPayoutINR,
+        levelBaseAmountUSD
+      };
+    });
+
+    const totalCapitalUSD = tier1Capital + tier2Capital;
+    const totalInvestorPayoutUSD = tier1InvestorPayoutUSD + tier2InvestorPayoutUSD;
+    const totalLevelPayoutUSD = tier1LevelPayoutUSD + tier2LevelPayoutUSD;
+
+    res.json({
+      monthYear,
+      isAlreadyDistributed: !!existingDistribution,
+      existingDistribution,
+      inrRate,
+      tier1: {
+        percent: t1Percent,
+        count: tier1Count,
+        capitalUSD: tier1Capital,
+        investorPayoutUSD: tier1InvestorPayoutUSD,
+        levelPayoutUSD: tier1LevelPayoutUSD
+      },
+      tier2: {
+        percent: t2Percent,
+        count: tier2Count,
+        capitalUSD: tier2Capital,
+        investorPayoutUSD: tier2InvestorPayoutUSD,
+        levelPayoutUSD: tier2LevelPayoutUSD
+      },
+      summary: {
+        totalPackages: filtered.length,
+        totalCapitalUSD,
+        totalInvestorPayoutUSD,
+        totalInvestorPayoutINR: round6(totalInvestorPayoutUSD * inrRate),
+        totalLevelPayoutUSD
+      },
+      packages: details
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const distributeMonthlyLiveTradingRoi = async (req, res, next) => {
+  try {
+    const { monthYear, tier1RoiPercent, tier2RoiPercent, force = false, notes = '' } = req.body;
+
+    if (!monthYear || !/^\d{4}-\d{2}$/.test(monthYear)) {
+      return res.status(400).json({ message: 'Valid month format (YYYY-MM) is required.' });
+    }
+
+    const t1Percent = Number(tier1RoiPercent);
+    const t2Percent = Number(tier2RoiPercent);
+
+    if (isNaN(t1Percent) || t1Percent < 10 || t1Percent > 15) {
+      return res.status(400).json({ message: 'Tier 1 ROI percentage must be between 10% and 15%.' });
+    }
+
+    if (isNaN(t2Percent) || t2Percent < 10 || t2Percent > 15) {
+      return res.status(400).json({ message: 'Tier 2 ROI percentage must be between 10% and 15%.' });
+    }
+
+    const existing = await MonthlyRoiDistribution.findOne({ monthYear, status: 'success' });
+    if (existing && !force) {
+      return res.status(400).json({ 
+        message: `Monthly Live Trading ROI for ${monthYear} was already distributed on ${new Date(existing.createdAt).toLocaleString()}. Use force flag to re-run.` 
+      });
+    }
+
+    const round6 = (num) => Math.round(num * 1000000) / 1000000;
+    const settings = await SystemSettings.findOne() || { inrExchangeRate: 90 };
+    const inrRate = settings.inrExchangeRate || 90;
+
+    const livePackages = await UserPackage.find({
+      status: 'active',
+      endDate: { $gt: new Date() }
+    }).populate('packageId');
+
+    const eligiblePkgs = livePackages.filter(p => p.packageId && p.packageId.packageType === 'live_trading');
+
+    if (eligiblePkgs.length === 0) {
+      return res.status(400).json({ message: 'No active Live Trading packages found to distribute ROI.' });
+    }
+
+    const { getUserMultiplier, isStrictlyActiveUser } = require('../utils/userValidation');
+    const { distributeLevelIncome } = require('../services/levelService');
+    const MiningIncome = require('../models/MiningIncome');
+
+    let totalCapitalUSD = 0;
+    let totalInvestorPayoutUSD = 0;
+    let totalInvestorPayoutINR = 0;
+    let totalLevelPayoutUSD = 0;
+    let totalLevelPayoutINR = 0;
+    const payoutDetails = [];
+
+    for (const pkg of eligiblePkgs) {
+      const user = await User.findById(pkg.user);
+      if (!user) continue;
+
+      const isTier2 = pkg.amount >= 10000 || (pkg.packageId && pkg.packageId.minAmount >= 10000);
+      const tierName = isTier2 ? 'Tier 2' : 'Tier 1';
+      const roiRate = isTier2 ? t2Percent : t1Percent;
+
+      const grossRoiUSD = round6(pkg.amount * (roiRate / 100));
+      const investorShareUSD = round6(grossRoiUSD * 0.50); // 50% to investor
+      const levelBaseAmountUSD = round6(grossRoiUSD * 0.30); // 30% to level pool
+
+      // Check user cap
+      const isActive = await isStrictlyActiveUser(user, pkg);
+      const maxCapMultiplier = await getUserMultiplier(user, pkg);
+      const pkgRemainingCap = (pkg.amount * maxCapMultiplier) - pkg.totalEarned;
+      const userRemainingCap = (user.totalInvestment * maxCapMultiplier) - user.totalEarning;
+      const maxAllowedProfit = Math.min(pkgRemainingCap, userRemainingCap);
+
+      let actualInvestorPayout = Math.min(investorShareUSD, maxAllowedProfit);
+      if (actualInvestorPayout < 0) actualInvestorPayout = 0;
+      actualInvestorPayout = round6(actualInvestorPayout);
+
+      let investorPayoutINR = 0;
+      if (actualInvestorPayout > 0) {
+        if (pkg.paymentMethod === 'INR') {
+          investorPayoutINR = round6(actualInvestorPayout * inrRate);
+          user.availableBalanceINR = round6((user.availableBalanceINR || 0) + investorPayoutINR);
+          totalInvestorPayoutINR += investorPayoutINR;
+        } else {
+          user.availableBalance = round6(user.availableBalance + actualInvestorPayout);
+        }
+
+        user.miningIncome = round6(user.miningIncome + actualInvestorPayout);
+        user.totalEarning = round6(user.totalEarning + actualInvestorPayout);
+        pkg.totalEarned = round6(pkg.totalEarned + actualInvestorPayout);
+
+        // Cap check
+        let capHit = false;
+        if (pkg.totalEarned >= pkg.amount * maxCapMultiplier || user.totalEarning >= user.totalInvestment * maxCapMultiplier) {
+          pkg.status = 'completed';
+          user.isActive = false;
+          capHit = true;
+        }
+
+        await user.save();
+        await pkg.save();
+
+        // Create MiningIncome record
+        await MiningIncome.create({
+          userId: user.userId,
+          user: user._id,
+          packageId: pkg.packageId._id,
+          userPackageId: pkg._id,
+          amount: actualInvestorPayout,
+          percentage: roiRate * 0.50,
+          triggerType: `Monthly Live Trading (${monthYear})`,
+          isManual: true
+        });
+
+        // Audit Log
+        await AuditLog.create({
+          action: 'LIVE_TRADING_MONTHLY_ROI',
+          userId: user._id,
+          packageId: pkg._id,
+          amount: actualInvestorPayout,
+          details: { 
+            monthYear, 
+            roiRate, 
+            grossRoiUSD, 
+            investorSharePercent: 50, 
+            paymentMethod: pkg.paymentMethod,
+            investorPayoutINR: pkg.paymentMethod === 'INR' ? investorPayoutINR : 0,
+            capHit 
+          }
+        });
+      }
+
+      // Distribute 30% Level Income
+      if (user.pins && user.pins > 0 && levelBaseAmountUSD > 0) {
+        await distributeLevelIncome(user._id, levelBaseAmountUSD, user.userId, pkg.paymentMethod || 'INR');
+        if (pkg.paymentMethod === 'INR') {
+          totalLevelPayoutINR += round6(levelBaseAmountUSD * inrRate);
+        } else {
+          totalLevelPayoutUSD += levelBaseAmountUSD;
+        }
+      }
+
+      totalCapitalUSD += pkg.amount;
+      totalInvestorPayoutUSD += actualInvestorPayout;
+
+      payoutDetails.push({
+        userPackageId: pkg._id,
+        userId: user.userId,
+        packageTier: tierName,
+        amount: pkg.amount,
+        roiPercent: roiRate,
+        grossRoiUSD,
+        investorPayoutUSD: actualInvestorPayout,
+        investorPayoutINR: pkg.paymentMethod === 'INR' ? investorPayoutINR : 0,
+        levelBaseAmountUSD,
+        paymentMethod: pkg.paymentMethod || 'INR'
+      });
+    }
+
+    // Record distribution
+    const distributionRecord = await MonthlyRoiDistribution.create({
+      monthYear,
+      tier1RoiPercent: t1Percent,
+      tier2RoiPercent: t2Percent,
+      totalPackagesProcessed: payoutDetails.length,
+      totalCapitalUSD: round6(totalCapitalUSD),
+      totalInvestorPayoutUSD: round6(totalInvestorPayoutUSD),
+      totalInvestorPayoutINR: round6(totalInvestorPayoutINR),
+      totalLevelPayoutUSD: round6(totalLevelPayoutUSD),
+      totalLevelPayoutINR: round6(totalLevelPayoutINR),
+      executedBy: req.user?._id,
+      executedByName: req.user?.fullName || req.user?.userId || 'Admin',
+      status: 'success',
+      payoutDetails,
+      notes
+    });
+
+    res.json({
+      message: `Monthly Live Trading ROI for ${monthYear} distributed successfully!`,
+      distribution: distributionRecord
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMonthlyLiveTradingHistory = async (req, res, next) => {
+  try {
+    const history = await MonthlyRoiDistribution.find().sort({ createdAt: -1 });
+    res.json(history);
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   deleteUser,
@@ -1556,5 +1892,8 @@ module.exports = {
   rejectManualBuy,
   runInrMigration,
   syncAllUserBalances,
-  extendStakingPeriod
+  extendStakingPeriod,
+  previewMonthlyLiveTradingRoi,
+  distributeMonthlyLiveTradingRoi,
+  getMonthlyLiveTradingHistory
 };
